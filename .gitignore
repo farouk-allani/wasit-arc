@@ -3,3 +3,6 @@ contracts/out/
 contracts/cache/
 .arc-studio/
 lib/
+dist/
+.env
+.env.*

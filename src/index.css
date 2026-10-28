@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Font imports ──────────────────────────────────────────────────────────── */
+/* Loaded via JS: @fontsource-variable/mona-sans and @fontsource/ibm-plex-mono */
+
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --background:        #0b1624;
+  --card:              #0f1d2e;
+  --elevated:          #142539;
+  --border:            rgb(180 191 207 / 0.14);
+
+  /* Text */
+  --foreground:        #edf1f6;
+  --muted-foreground:  #9aa8ba;
+  --secondary-foreground: #b4bfcf;
+
+  /* Brand */
+  --primary:           #ddb886;
+  --primary-foreground:#070f19;
+
+  /* Semantic */
+  --destructive:       #e8735f;
+  --success:           #5cc49a;
+  --warning:           #e7b057;
+
+  /* Shape */
+  --radius:            0.75rem;
+
+  /* Typography */
+  --font-ui:    'Mona Sans Variable', 'Mona Sans', system-ui, sans-serif;
+  --font-mono:  'IBM Plex Mono', 'Menlo', monospace;
+}
+
+/* Paper variant — document-like panels, opt-in with class="paper" */
+.paper {
+  --background:        #f6f2ea;
+  --card:              #ede9df;
+  --elevated:          #e4dfd3;
+  --border:            rgb(17 26 38 / 0.10);
+  --foreground:        #111a26;
+  --muted-foreground:  #4a5568;
+  --secondary-foreground: #2d3748;
+}
+
+/* ── Base styles ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Mono class ─────────────────────────────────────────────────────────────── */
+/* Apply to: USDC amounts, addresses, bps values, tx hashes */
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── ConnectKit overrides ───────────────────────────────────────────────────── */
+/* Keep modal on-brand without fighting the default theme */
+:root {
+  --ck-font-family: var(--font-ui);
+  --ck-body-background: var(--card);
+  --ck-body-background-secondary: var(--elevated);
+  --ck-body-color: var(--foreground);
+  --ck-body-color-muted: var(--muted-foreground);
+  --ck-border-radius: var(--radius);
+  --ck-primary-button-background: var(--primary);
+  --ck-primary-button-color: var(--primary-foreground);
+  --ck-primary-button-hover-background: #c9a470;
+}
+
+/* ── Toast styling ──────────────────────────────────────────────────────────── */
+[data-sonner-toaster] {
+  --normal-bg: var(--elevated);
+  --normal-border: var(--border);
+  --normal-text: var(--foreground);
+}
