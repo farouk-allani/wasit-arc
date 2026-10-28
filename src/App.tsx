@@ -44,7 +44,7 @@ export default function App() {
 
       <NetworkGuard>
         {page.name === 'home' && <Home onNavigate={navigate} />}
-        {page.name === 'create' && <CreateDeal />}
+        {page.name === 'create' && <CreateDeal onSuccess={(id) => openDeal(id)} />}
         {page.name === 'deals' && <MyDeals onOpenDeal={openDeal} />}
         {page.name === 'deal' && <DealPage dealId={page.id} />}
       </NetworkGuard>
