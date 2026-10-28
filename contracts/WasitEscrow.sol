@@ -25,6 +25,8 @@ contract WasitEscrow is ReentrancyGuard {
     struct Milestone {
         uint128 amount;
         MilestoneState state;
+        uint64 attestedAt;
+        bool buyerApproved;
     }
 
     enum MilestoneState {
@@ -71,6 +73,11 @@ contract WasitEscrow is ReentrancyGuard {
     error DealNotFound(uint256 dealId);
     error UnauthorizedCaller(address caller, address expected);
     error InvalidDealState(uint256 dealId, DealState current, DealState expected);
+    error MilestoneNotPending(uint256 dealId, uint256 i, MilestoneState current);
+    error MilestoneNotReleasable(uint256 dealId, uint256 i, MilestoneState current);
+    error ChallengeWindowNotExpired(uint256 dealId, uint256 i, uint256 unlocksAt, uint256 now_);
+    error DealNotFunded(uint256 dealId, DealState current);
+    error NothingToWithdraw(address caller);
 
     event DealCreated(
         uint256 indexed dealId,
@@ -82,12 +89,21 @@ contract WasitEscrow is ReentrancyGuard {
     );
 
     event DealFunded(uint256 indexed dealId, address indexed buyer, uint128 total);
+    event MilestoneAttested(uint256 indexed dealId, uint256 indexed i, bytes32 evidenceHash, uint64 attestedAt);
+    event MilestoneApproved(uint256 indexed dealId, uint256 indexed i, address buyer);
+    event MilestoneReleased(uint256 indexed dealId, uint256 indexed i, uint128 amount);
+    event PayeePaid(uint256 indexed dealId, uint256 indexed i, address indexed to, uint128 amount);
+    event PayoutCredited(uint256 indexed dealId, uint256 indexed i, address indexed to, uint128 amount);
+    event Withdrawn(address indexed to, uint128 amount);
 
     address public immutable feeRecipient;
     uint16 public immutable feeBps;
 
     uint256 public nextDealId;
     mapping(uint256 => Deal) private _deals;
+
+    /// @notice Accumulated USDC owed to each address from failed payout attempts.
+    mapping(address => uint128) private _owed;
 
     /// @notice Initializes immutable fee configuration for escrow deals.
     /// @param feeRecipient_ Recipient address for protocol fees.
@@ -179,7 +195,14 @@ contract WasitEscrow is ReentrancyGuard {
         }
 
         for (uint256 i; i < milestoneLength; ++i) {
-            deal.milestones.push(Milestone({amount: uint128(milestoneAmounts[i]), state: MilestoneState.Pending}));
+            deal.milestones.push(
+                Milestone({
+                    amount: uint128(milestoneAmounts[i]),
+                    state: MilestoneState.Pending,
+                    attestedAt: 0,
+                    buyerApproved: false
+                })
+            );
         }
 
         nextDealId = dealId + 1;
@@ -198,10 +221,185 @@ contract WasitEscrow is ReentrancyGuard {
             revert InvalidDealState(dealId, deal.state, DealState.Created);
         }
 
-        IERC20(USDC).safeTransferFrom(msg.sender, address(this), deal.total);
         deal.state = DealState.Funded;
+        IERC20(USDC).safeTransferFrom(msg.sender, address(this), deal.total);
 
         emit DealFunded(dealId, msg.sender, deal.total);
+    }
+
+    /// @notice Inspector attests that milestone i is complete.
+    /// @param dealId Deal identifier.
+    /// @param i Milestone index.
+    /// @param evidenceHash Keccak256 hash of off-chain evidence documents.
+    function attest(uint256 dealId, uint256 i, bytes32 evidenceHash) external nonReentrant {
+        _requireExistingDeal(dealId);
+        Deal storage deal = _deals[dealId];
+
+        if (deal.state != DealState.Funded) revert DealNotFunded(dealId, deal.state);
+        if (msg.sender != deal.inspector) revert UnauthorizedCaller(msg.sender, deal.inspector);
+
+        Milestone storage m = deal.milestones[i];
+        if (m.state != MilestoneState.Pending) revert MilestoneNotPending(dealId, i, m.state);
+
+        // effects
+        m.state = MilestoneState.Attested;
+        m.attestedAt = uint64(block.timestamp);
+
+        emit MilestoneAttested(dealId, i, evidenceHash, m.attestedAt);
+    }
+
+    /// @notice Buyer approves milestone i for immediate release, skipping the challenge window.
+    /// @dev Works on both Pending and Attested milestones.
+    /// @param dealId Deal identifier.
+    /// @param i Milestone index.
+    function approve(uint256 dealId, uint256 i) external nonReentrant {
+        _requireExistingDeal(dealId);
+        Deal storage deal = _deals[dealId];
+
+        if (deal.state != DealState.Funded) revert DealNotFunded(dealId, deal.state);
+        if (msg.sender != deal.buyer) revert UnauthorizedCaller(msg.sender, deal.buyer);
+
+        Milestone storage m = deal.milestones[i];
+        if (m.state != MilestoneState.Pending && m.state != MilestoneState.Attested) {
+            revert MilestoneNotPending(dealId, i, m.state);
+        }
+
+        // effects
+        m.state = MilestoneState.Approved;
+        m.buyerApproved = true;
+
+        emit MilestoneApproved(dealId, i, msg.sender);
+    }
+
+    /// @notice Releases milestone i. Callable by anyone once:
+    ///   - the milestone is Attested AND block.timestamp >= attestedAt + challengeWindow, OR
+    ///   - the buyer has approved it (state == Approved).
+    /// @dev Uses low-level USDC.transfer for each payout so a single blocklisted
+    ///      recipient cannot revert the entire release. Failed payouts are credited
+    ///      to _owed[recipient] and emitted as PayoutCredited.
+    /// @param dealId Deal identifier.
+    /// @param i Milestone index.
+    function release(uint256 dealId, uint256 i) external nonReentrant {
+        _requireExistingDeal(dealId);
+        Deal storage deal = _deals[dealId];
+
+        if (deal.state != DealState.Funded) revert DealNotFunded(dealId, deal.state);
+
+        Milestone storage m = deal.milestones[i];
+
+        // Determine releasability
+        bool releasable = false;
+        if (m.state == MilestoneState.Approved) {
+            releasable = true;
+        } else if (m.state == MilestoneState.Attested) {
+            uint256 unlocksAt = uint256(m.attestedAt) + uint256(deal.challengeWindow);
+            if (block.timestamp >= unlocksAt) {
+                releasable = true;
+            } else {
+                revert ChallengeWindowNotExpired(dealId, i, unlocksAt, block.timestamp);
+            }
+        } else {
+            revert MilestoneNotReleasable(dealId, i, m.state);
+        }
+
+        if (!releasable) revert MilestoneNotReleasable(dealId, i, m.state);
+
+        uint128 A = m.amount;
+
+        // effects — mark Released before any external calls (CEI)
+        m.state = MilestoneState.Released;
+
+        emit MilestoneReleased(dealId, i, A);
+        _tryCloseDeal(deal);
+
+        // interactions — _payout handles individual transfer failures gracefully
+        _releasePayout(dealId, i, deal, A);
+    }
+
+    /// @dev Computes and dispatches the split for a released milestone.
+    ///      Uses low-level calls so a single failed transfer never reverts the release.
+    /// @param dealId Deal identifier (for event indexing only).
+    /// @param milestoneIdx Milestone index (for event indexing only).
+    /// @param deal Storage pointer to the deal.
+    /// @param A Total milestone amount to distribute.
+    function _releasePayout(
+        uint256 dealId,
+        uint256 milestoneIdx,
+        Deal storage deal,
+        uint128 A
+    ) internal {
+        uint256 payeeLen = deal.payees.length;
+
+        // fee and non-seller payees
+        uint128 distributed = 0;
+
+        // platform fee
+        {
+            uint128 fee = uint128(uint256(A) * feeBps / BPS_DENOMINATOR);
+            _sendOrCredit(dealId, milestoneIdx, feeRecipient, fee);
+            distributed += fee;
+        }
+
+        // payees j >= 1
+        for (uint256 j = 1; j < payeeLen; ++j) {
+            uint128 share = uint128(uint256(A) * deal.payees[j].bps / BPS_DENOMINATOR);
+            _sendOrCredit(dealId, milestoneIdx, deal.payees[j].addr, share);
+            distributed += share;
+        }
+
+        // seller (payee 0) gets remainder — all rounding dust goes here
+        uint128 sellerShare = A - distributed;
+        _sendOrCredit(dealId, milestoneIdx, deal.payees[0].addr, sellerShare);
+    }
+
+    /// @dev Attempts a low-level USDC.transfer to `to`. On failure, credits _owed[to].
+    /// @param dealId Deal identifier (for events).
+    /// @param milestoneIdx Milestone index (for events).
+    /// @param to Recipient address.
+    /// @param amount Amount in 6-decimal USDC units.
+    function _sendOrCredit(
+        uint256 dealId,
+        uint256 milestoneIdx,
+        address to,
+        uint128 amount
+    ) internal {
+        if (amount == 0) return;
+
+        // low-level call: encode transfer(address,uint256)
+        (bool ok, bytes memory data) = USDC.call(
+            abi.encodeWithSignature("transfer(address,uint256)", to, uint256(amount))
+        );
+
+        // success: ok == true AND (no return data OR return data decodes to true)
+        bool success = ok && (data.length == 0 || (data.length == 32 && abi.decode(data, (bool))));
+
+        if (success) {
+            emit PayeePaid(dealId, milestoneIdx, to, amount);
+        } else {
+            _owed[to] += amount;
+            emit PayoutCredited(dealId, milestoneIdx, to, amount);
+        }
+    }
+
+    /// @notice Pulls any USDC credited to msg.sender from failed payout attempts.
+    function withdraw() external nonReentrant {
+        uint128 amount = _owed[msg.sender];
+        if (amount == 0) revert NothingToWithdraw(msg.sender);
+
+        // effects first
+        _owed[msg.sender] = 0;
+
+        // interaction — use SafeERC20 here because this is an explicit pull; revert is correct
+        IERC20(USDC).safeTransfer(msg.sender, amount);
+
+        emit Withdrawn(msg.sender, amount);
+    }
+
+    /// @notice Returns the amount of USDC credited but not yet withdrawn by `account`.
+    /// @param account Address to query.
+    /// @return Amount in 6-decimal USDC units.
+    function owed(address account) external view returns (uint128) {
+        return _owed[account];
     }
 
     /// @notice Returns scalar metadata for a deal.
@@ -275,5 +473,26 @@ contract WasitEscrow is ReentrancyGuard {
     /// @param dealId Identifier to validate.
     function _requireExistingDeal(uint256 dealId) internal view {
         if (dealId >= nextDealId) revert DealNotFound(dealId);
+    }
+
+    /// @notice Closes the deal if every milestone has reached a terminal state.
+    /// @dev Terminal states for the currently implemented release path: Released.
+    ///      Will expand in later turns to include Resolved and Refunded.
+    ///      Called after any milestone state transition.
+    /// @param deal Storage pointer to the deal.
+    function _tryCloseDeal(Deal storage deal) internal {
+        uint256 len = deal.milestones.length;
+        for (uint256 k = 0; k < len; ++k) {
+            MilestoneState ms = deal.milestones[k].state;
+            // terminal states (will grow with future turns)
+            if (
+                ms != MilestoneState.Released &&
+                ms != MilestoneState.Resolved &&
+                ms != MilestoneState.Refunded
+            ) {
+                return; // at least one milestone is not yet terminal
+            }
+        }
+        deal.state = DealState.Closed;
     }
 }
