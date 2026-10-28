@@ -7,6 +7,15 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 /// @title WasitEscrow
 /// @notice Milestone-based USDC escrow with fixed-fee split accounting.
+/// @dev CUSTODY RISK: This contract holds USDC on behalf of all active deals in a single
+///      address. If the USDC issuer (Circle) were to blocklist this contract address, all
+///      outbound transfers — including `release`, `resolve`, `refundExpired`, and `withdraw`
+///      — would fail for every deal simultaneously. The individual-payee send-or-credit
+///      fallback (`_owed`) does NOT protect against a whole-contract freeze because
+///      `withdraw()` itself requires a successful transfer from the frozen address. This
+///      is an inherent limitation of shared-custody stablecoin escrow; operators and users
+///      should be aware of this centralised-stablecoin risk before using the contract in
+///      production.
 contract WasitEscrow is ReentrancyGuard {
     /// @dev Arc-specific USDC address (0x3600…). This contract is Arc-only; do not
     ///      deploy on other chains without updating this constant.
@@ -18,6 +27,8 @@ contract WasitEscrow is ReentrancyGuard {
     uint8 private constant MAX_PAYEES = 6;
     uint8 private constant MAX_MILESTONES = 5;
     uint64 private constant MAX_CHALLENGE_WINDOW = 7 days;
+    /// @notice After this window elapses from disputedAt, anyone may call releaseStalled().
+    uint64 public constant ARBITRATION_WINDOW = 14 days;
 
     struct Payee {
         address addr;
@@ -28,6 +39,7 @@ contract WasitEscrow is ReentrancyGuard {
         uint128 amount;
         MilestoneState state;
         uint64 attestedAt;
+        uint64 disputedAt;
         bool buyerApproved;
     }
 
@@ -86,6 +98,9 @@ contract WasitEscrow is ReentrancyGuard {
     error SellerShareBpsTooHigh(uint16 provided, uint16 max);
     error DeadlineNotPassed(uint256 dealId, uint256 deadline, uint256 now_);
     error MilestoneNotPendingForRefund(uint256 dealId, uint256 i, MilestoneState current);
+    error ArbiterIsPayee(address arbiter);
+    error ArbiterWindowNotExpired(uint256 dealId, uint256 i, uint256 unlocksAt, uint256 now_);
+    error MilestoneNotStalledDisputed(uint256 dealId, uint256 i, MilestoneState current);
 
     event DealCreated(
         uint256 indexed dealId,
@@ -106,6 +121,9 @@ contract WasitEscrow is ReentrancyGuard {
     event MilestoneDisputed(uint256 indexed dealId, uint256 indexed i, address buyer, string reason);
     event MilestoneResolved(uint256 indexed dealId, uint256 indexed i, uint128 sellerAmount, uint128 buyerRefund);
     event MilestoneRefunded(uint256 indexed dealId, uint256 indexed i, address buyer, uint128 amount);
+    /// @notice Emitted by releaseStalled() when a disputed milestone is settled via the
+    ///         arbitration timeout rather than by the arbiter calling resolve().
+    event MilestoneStalledReleased(uint256 indexed dealId, uint256 indexed i, uint128 amount);
 
     address public immutable feeRecipient;
     uint16 public immutable feeBps;
@@ -172,6 +190,11 @@ contract WasitEscrow is ReentrancyGuard {
         if (arbiter == msg.sender || arbiter == seller) revert InvalidArbiter(arbiter);
         if (inspector == seller) revert InvalidInspector(inspector);
 
+        // Arbiter must not hold any share of the split (financial stake corrupts impartiality).
+        for (uint256 i; i < payeeLength; ++i) {
+            if (payees[i].addr == arbiter) revert ArbiterIsPayee(arbiter);
+        }
+
         if (challengeWindow > MAX_CHALLENGE_WINDOW) {
             revert ChallengeWindowTooLong(challengeWindow, MAX_CHALLENGE_WINDOW);
         }
@@ -211,6 +234,7 @@ contract WasitEscrow is ReentrancyGuard {
                     amount: uint128(milestoneAmounts[i]),
                     state: MilestoneState.Pending,
                     attestedAt: 0,
+                    disputedAt: 0,
                     buyerApproved: false
                 })
             );
@@ -305,6 +329,7 @@ contract WasitEscrow is ReentrancyGuard {
 
         // effects
         m.state = MilestoneState.Disputed;
+        m.disputedAt = uint64(block.timestamp);
 
         emit MilestoneDisputed(dealId, i, msg.sender, reason);
     }
@@ -420,6 +445,47 @@ contract WasitEscrow is ReentrancyGuard {
 
         // interaction — refund to buyer via send-or-credit fallback
         _sendOrCredit(dealId, i, deal.buyer, A);
+    }
+
+    /// @notice Settles a Disputed milestone via the attested-outcome default once the
+    ///         arbitration window has elapsed without the arbiter calling resolve().
+    /// @dev Settles using the SAME payee split as release() — the inspector had already
+    ///      attested the work before the buyer raised the dispute, so the attested outcome
+    ///      is the correct default. Defaulting to a buyer refund instead would let a buyer
+    ///      dispute everything, wait for a silent arbiter, and claw back delivered goods.
+    ///      The arbiter resolving normally always takes priority: once Resolved, this
+    ///      function reverts. Milestone is marked Released (not a new terminal state),
+    ///      satisfying the at-most-once rule alongside release(), resolve() and
+    ///      refundExpired().
+    /// @param dealId Deal identifier.
+    /// @param i Milestone index.
+    function releaseStalled(uint256 dealId, uint256 i) external nonReentrant {
+        _requireExistingDeal(dealId);
+        Deal storage deal = _deals[dealId];
+
+        if (deal.state != DealState.Funded) revert DealNotFunded(dealId, deal.state);
+
+        Milestone storage m = deal.milestones[i];
+        if (m.state != MilestoneState.Disputed) {
+            revert MilestoneNotStalledDisputed(dealId, i, m.state);
+        }
+
+        uint256 unlocksAt = uint256(m.disputedAt) + uint256(ARBITRATION_WINDOW);
+        if (block.timestamp < unlocksAt) {
+            revert ArbiterWindowNotExpired(dealId, i, unlocksAt, block.timestamp);
+        }
+
+        uint128 A = m.amount;
+
+        // effects — CEI: mark Released before any external calls
+        m.state = MilestoneState.Released;
+
+        emit MilestoneStalledReleased(dealId, i, A);
+        emit MilestoneReleased(dealId, i, A);
+        _tryCloseDeal(deal);
+
+        // interactions — same split as release(); send-or-credit fallback preserves solvency
+        _releasePayout(dealId, i, deal, A);
     }
 
     /// @dev Computes and dispatches the split for a released milestone.

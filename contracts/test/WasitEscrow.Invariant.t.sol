@@ -323,6 +323,28 @@ contract WasitEscrowHandler is Test {
         } catch {}
     }
 
+    // ── Handler: releaseStalled ──────────────────────────────────────────────
+    function handler_releaseStalled(uint256 dealSeed, uint256 mSeed) external {
+        uint256 len = trackedDealIds.length;
+        if (len == 0) return;
+
+        uint256 dealId = trackedDealIds[bound(dealSeed, 0, len - 1)];
+        DealInfo storage info = _dealInfo[dealId];
+        if (!info.exists) return;
+
+        uint256 mi = bound(mSeed, 0, info.milestoneCount == 0 ? 0 : info.milestoneCount - 1);
+
+        (uint128 mAmt, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, mi);
+
+        try escrow.releaseStalled(dealId, mi) {
+            // releaseStalled marks the milestone Released — same terminal state as release()
+            if (!_isTerminal(mState)) {
+                _markTerminal(dealId, mi, mAmt);
+            }
+            _recomputeOwed();
+        } catch {}
+    }
+
     // ── Handler: withdraw ────────────────────────────────────────────────────
     function handler_withdraw(uint256 actorSeed) external {
         address actor = _knownAddrs[bound(actorSeed, 0, _knownAddrs.length - 1)];
