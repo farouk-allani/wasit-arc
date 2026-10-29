@@ -601,9 +601,27 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
     //  DEAL STATE / CLOSURE (20–21)
     // ══════════════════════════════════════════════════════════════════════════
 
+    /// @dev Creates a 3-milestone deal with a deadline large enough to survive
+    ///      3 consecutive _attestAndWarp calls (each advances 2 days+1).
+    ///      challengeWindow=2 days, deadline=now+30 days satisfies > now+challengeWindow.
+    function _createAndFundLongDeadline() internal returns (uint256 dealId) {
+        vm.prank(buyer);
+        dealId = escrow.createDeal(
+            _defaultPayees(),
+            inspector,
+            arbiter,
+            _defaultMilestones(),
+            2 days,
+            uint64(block.timestamp + 30 days)
+        );
+        _fundSetup();
+        vm.prank(buyer);
+        escrow.fund(dealId);
+    }
+
     /// Test 20: after all milestones Released, getDeal returns DealState.Closed
     function test_DealClosed_AfterAllMilestonesReleased() public {
-        uint256 dealId = _createAndFund();
+        uint256 dealId = _createAndFundLongDeadline();
 
         for (uint256 i = 0; i < 3; ++i) {
             _attestAndWarp(dealId, i);
@@ -616,7 +634,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
 
     /// Test 21: after deal Closed, release on already-released milestone → DealNotFunded
     function test_Release_OnClosedDeal_Reverts() public {
-        uint256 dealId = _createAndFund();
+        uint256 dealId = _createAndFundLongDeadline();
 
         for (uint256 i = 0; i < 3; ++i) {
             _attestAndWarp(dealId, i);

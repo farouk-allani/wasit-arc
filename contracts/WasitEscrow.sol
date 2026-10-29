@@ -101,6 +101,11 @@ contract WasitEscrow is ReentrancyGuard {
     error ArbiterIsPayee(address arbiter);
     error ArbiterWindowNotExpired(uint256 dealId, uint256 i, uint256 unlocksAt, uint256 now_);
     error MilestoneNotStalledDisputed(uint256 dealId, uint256 i, MilestoneState current);
+    /// @notice Thrown by attest() when block.timestamp >= deal.deadline.
+    /// @dev An inspector who is also a payee receives their share on release but nothing on
+    ///      refundExpired, giving them an incentive to attest after the deadline and destroy
+    ///      the buyer's right to a clean refund. The guard prevents this.
+    error AttestAfterDeadline(uint256 dealId, uint64 deadline, uint256 now_);
 
     event DealCreated(
         uint256 indexed dealId,
@@ -263,6 +268,11 @@ contract WasitEscrow is ReentrancyGuard {
     }
 
     /// @notice Inspector attests that milestone i is complete.
+    /// @dev Attestation is blocked once block.timestamp >= deal.deadline. An inspector who
+    ///      is also a payee is paid when a milestone releases but not when it refunds, so
+    ///      without this guard they could attest after the deadline and destroy the buyer's
+    ///      refundExpired right. The guard ensures the deadline is a hard cut-off: if work
+    ///      was not attested in time, the buyer can recover via refundExpired.
     /// @param dealId Deal identifier.
     /// @param i Milestone index.
     /// @param evidenceHash Keccak256 hash of off-chain evidence documents.
@@ -272,6 +282,11 @@ contract WasitEscrow is ReentrancyGuard {
 
         if (deal.state != DealState.Funded) revert DealNotFunded(dealId, deal.state);
         if (msg.sender != deal.inspector) revert UnauthorizedCaller(msg.sender, deal.inspector);
+
+        // Deadline guard: block attestation once the deal deadline has passed.
+        if (block.timestamp >= uint256(deal.deadline)) {
+            revert AttestAfterDeadline(dealId, deal.deadline, block.timestamp);
+        }
 
         Milestone storage m = deal.milestones[i];
         if (m.state != MilestoneState.Pending) revert MilestoneNotPending(dealId, i, m.state);
@@ -284,7 +299,12 @@ contract WasitEscrow is ReentrancyGuard {
     }
 
     /// @notice Buyer approves milestone i for immediate release, skipping the challenge window.
-    /// @dev Works on both Pending and Attested milestones.
+    /// @dev Works on both Pending and Attested milestones. Intentionally has NO deadline
+    ///      guard: an honest buyer must be able to approve a Pending milestone after the
+    ///      deadline if they choose to pay a late seller. This asymmetry is deliberate —
+    ///      attest() is blocked after the deadline to protect the buyer from a self-interested
+    ///      inspector-payee, but approve() is the buyer's own voluntary choice and must
+    ///      remain available.
     /// @param dealId Deal identifier.
     /// @param i Milestone index.
     function approve(uint256 dealId, uint256 i) external nonReentrant {

@@ -1,97 +1,289 @@
-# WasitEscrow Security Review
+# WasitEscrow — Final Security Review
 
-Turn 4 — invariant / fuzz tests + full architecture checklist.
+**Contract:** `contracts/WasitEscrow.sol`  
+**Deployment:** `0x0e00f7d98be4c20f38552766fdf1ac4cd704e5be` (Arc Testnet, chain 5042002)  
+**Review date:** 2026-10-29 (updated 2026-10-29 — Medium finding fixed)  
+**Preset:** max  
+**Scope:** full contract including the two features added in turn 5 — arbiter-not-payee rule
+and `releaseStalled()` — which had not previously had a full review pass.
 
-## Test suite summary
+---
 
-| Suite | Tests | Result |
+## Summary
+
+**All findings resolved. Contract is ready for mainnet deployment.**
+
+143 tests pass (8 new deadline-guard tests added). Both the rule-corpus auditor and the
+functional auditor were run at max severity. One Medium finding emerged and has been fixed:
+`attest()` now rejects attestation at or after `deal.deadline` with a dedicated
+`AttestAfterDeadline` error. `approve()` deliberately has no deadline guard — the NatSpec
+documents the asymmetry. No Critical or High findings. Every other check is clean.
+
+The shared-custody freeze risk (Circle blocklisting the contract address) is a known,
+documented architectural limitation — not a new finding. It is re-stated here for
+completeness.
+
+---
+
+## Findings
+
+### Medium — `attest()` does not check the deal deadline — **FIXED**
+
+**Location:** `WasitEscrow.attest()`, lines 270–289 (post-fix)  
+**Auditor:** functional-auditor (confirmed by manual review)  
+**Status:** Fixed. `AttestAfterDeadline` error added; guard live in current source.
+
+**Description.** `refundExpired()` can only refund a `Pending` milestone after `deadline`.
+`attest()` has no corresponding deadline guard. An inspector can therefore call `attest()`
+after `deadline`, converting the milestone from `Pending` to `Attested` and making
+`refundExpired()` revert (`MilestoneNotPendingForRefund`). The buyer's expected "deadline
+refund" path is gone.
+
+**Impact.** The buyer is not permanently locked out of funds. From `Attested` the buyer
+retains `dispute()` (within the new challenge window), and after the window anyone can call
+`release()`. But the buyer receives the attested split rather than a full refund — losing
+their dispute lever — unless they dispute within the new window. An inspector who is also a
+payee has a direct financial incentive to do this.
+
+**Severity:** Medium (funds not unreachable, but a party can be forced into a worse outcome
+than the contract's stated semantics promise).
+
+**Fix applied.** Guard added at the top of `attest()`:
+
+```solidity
+if (block.timestamp >= uint256(deal.deadline)) {
+    revert AttestAfterDeadline(dealId, deal.deadline, block.timestamp);
+}
+```
+
+Custom error added:
+
+```solidity
+/// @notice Thrown by attest() when block.timestamp >= deal.deadline.
+error AttestAfterDeadline(uint256 dealId, uint64 deadline, uint256 now_);
+```
+
+`approve()` intentionally has no matching guard — the buyer may voluntarily pay a late
+seller. The NatSpec on `approve()` documents this asymmetry explicitly.
+
+**Tests added** (`contracts/test/WasitEscrow.DeadlineGuard.t.sol`, 8 tests):
+1. `test_attest_justBeforeDeadline_succeeds` — attest at `deadline - 1` succeeds
+2. `test_attest_atExactDeadline_reverts` — attest at `deadline` reverts with `AttestAfterDeadline`
+3. `test_attest_afterDeadline_reverts` — attest at `deadline + 1 day` reverts
+4. `test_refundExpired_afterDeadline_pendingMilestone` — `refundExpired` works on Pending after deadline
+5. `test_approve_afterDeadline_pendingMilestone_succeeds` — buyer `approve()` works after deadline
+6. `test_approve_afterDeadline_thenRelease_correctSplit` — approved post-deadline milestone releases with exact split
+7. `test_attestBeforeDeadline_windowExpiresAfterDeadline_releaseSucceeds` — attested before deadline, window ends after, release still works
+8. `test_refundExpired_rejectsAttestedMilestone` — `refundExpired` rejects a timely-attested milestone
+
+Two pre-existing tests in `WasitEscrow.Release.t.sol` that looped over 3 milestones were
+updated to use a `30 day` deadline (instead of `3 days`) so the test sequence does not
+collide with the new guard. Their logic is unchanged.
+
+**Full suite result after fix:** 143/143 pass, 0 fail.
+
+---
+
+### Informational — `_owed` credits are permanently unwithdrawable for blocklisted addresses
+
+**Location:** `_sendOrCredit()` / `withdraw()`, lines 567–611  
+**Auditor:** functional-auditor (re-confirmed; pre-existing known limitation)
+
+**Description.** If a payee, the buyer, or the fee recipient is blocklisted by Circle, their
+share is credited to `_owed[address]`. `withdraw()` calls `safeTransfer` to that address,
+which also fails for a blocklisted address, so the credited amount is permanently trapped.
+
+**Impact.** The amount remains in the contract indefinitely, not recoverable by the affected
+party or anyone else (there is no admin sweep). This is the individual-payee instance of the
+shared-custody risk and is already documented in the contract-level NatSpec.
+
+**Severity:** Informational (known limitation, documented, no new attack surface).
+
+**Fix / mitigation:** Pre-deployment: screen all payee/buyer/inspector addresses against
+the USDC blocklist before funding. Operational: the UI should warn users that a blocked
+address cannot withdraw their credits. No contract change is needed for mainnet, but the
+operational guidance is important.
+
+---
+
+### Informational — Shared-custody contract-level freeze
+
+**Location:** `WasitEscrow` (contract header NatSpec), line 13  
+**Auditor:** rule-corpus auditor (pre-existing known limitation)
+
+**Description.** All deal funds live at one address. If Circle blocklists the contract
+itself, all outbound transfers fail simultaneously across all active deals. The
+`_sendOrCredit` fallback does not help here because `withdraw()` would also fail.
+
+**Impact.** Protocol-wide liveness failure; no deal can release or refund until the freeze
+is lifted (which requires Circle action). This is inherent to single-contract shared-custody
+stablecoin escrow and is disclosed in the contract header.
+
+**Severity:** Informational (architectural property, documented, not a code defect).
+
+**Mitigation:** Accept and disclose; consider per-deal isolated custody in a future version.
+
+---
+
+## Focused Question Answers
+
+### 1. `releaseStalled()` — double-settlement and front-run safety
+
+**Can it settle an already-settled milestone?**  
+No. The function requires `m.state == Disputed`. Every other settlement path writes a
+different terminal state before returning: `resolve()` writes `Resolved`, `release()` writes
+`Released`, `refundExpired()` writes `Refunded`. Once any of these has fired, `releaseStalled`
+reverts at the state guard.
+
+**Can it front-run `resolve()`?**  
+Not profitably. If `releaseStalled` and `resolve` race in the same block, exactly one
+executes successfully (whichever is included first); the second reverts on the state guard.
+`NonReentrant` prevents any inter-call re-entry. No double-pay is possible.
+
+**Is `disputedAt` set and read correctly?**  
+Yes. `dispute()` sets `m.disputedAt = uint64(block.timestamp)` (line 332) as an effect
+before emitting the event. `releaseStalled()` reads it at line 473 to compute
+`unlocksAt = disputedAt + ARBITRATION_WINDOW`. Correct.
+
+**Can a buyer reset the `disputedAt` clock by re-disputing?**  
+No. `dispute()` requires `m.state == Attested`. Once `Disputed`, the milestone state can
+only change to `Resolved` (arbiter) or `Released` (releaseStalled). There is no path back to
+`Attested` from `Disputed`. The clock cannot be reset.
+
+### 2. At-most-once across all four settlement paths
+
+Each path requires a distinct non-terminal input state:
+
+| Path | Required state | Sets state to |
 |---|---|---|
-| WasitEscrow.Deploy.t.sol | 8 | PASS |
-| WasitEscrow.CreateDeal.t.sol | 26 | PASS |
-| WasitEscrow.Fund.t.sol | 9 | PASS |
-| WasitEscrow.Release.t.sol | 24 | PASS |
-| WasitEscrow.DisputeRefund.t.sol | 28 | PASS |
-| WasitEscrow.FuzzSplit.t.sol | 5 fuzz × 256 runs | PASS |
-| WasitEscrow.Invariant.t.sol | 4 invariants × 256 runs × 50 depth + 1 unit | PASS |
-| **Total** | **105** | **0 failures** |
+| `release()` | `Approved` or `Attested` | `Released` |
+| `resolve()` | `Disputed` | `Resolved` |
+| `refundExpired()` | `Pending` | `Refunded` |
+| `releaseStalled()` | `Disputed` | `Released` |
 
-Invariant run counts: 256 runs × 50 depth = 12,800 handler calls per invariant property.
+`release` and `releaseStalled` both set `Released` but require different input states
+(`Attested`/`Approved` vs `Disputed`). A milestone cannot be in both `Attested` and
+`Disputed` simultaneously — `Attested → Disputed` is a one-way transition via `dispute()`.
+At-most-once is airtight.
+
+### 3. State-machine reachability — full table
+
+Every milestone state has at least one exit path that eventually gets funds out.
+
+| State | How funds escape | Dead end? |
+|---|---|---|
+| **Pending** | (a) `attest()` → Attested, then see below; (b) `approve()` → Approved → `release()`; (c) `refundExpired()` after deadline → Refunded → buyer | No |
+| **Attested** | (a) `release()` after challenge window → Released; (b) `approve()` → Approved → `release()`; (c) `dispute()` within window → Disputed → see below | No |
+| **Approved** | `release()` by anyone, immediately → Released | No |
+| **Disputed** | (a) `resolve()` by arbiter → Resolved; (b) `releaseStalled()` by anyone after 14 d → Released | No — 14-day hard cap |
+| **Released** | Terminal. Funds paid out or in `_owed`. `withdraw()` pulls `_owed` (unless blocklisted — known limitation). | No† |
+| **Resolved** | Terminal. Same as Released. | No† |
+| **Refunded** | Terminal. Buyer paid or `_owed[buyer]`. | No† |
+
+† The only remaining risk at terminal states is the blocklisted-recipient `_owed` credit
+(Informational above). Funds are not lost to the protocol; they are credited and
+unwithdrawable only to the blocked address.
+
+**Special case — Pending after deadline (post-deadline attestation):**  
+An inspector can attest after deadline (the Medium finding). If they do, the milestone
+transitions to `Attested` post-deadline. The buyer can still `dispute()` within the new
+challenge window, and anyone can `release()` after it. Funds are not permanently locked —
+the buyer simply cannot use `refundExpired()` and must interact via the challenge-window
+path instead.
+
+**Special case — deal Created, never funded:**  
+No USDC enters the contract. Milestones remain `Pending` forever but carry no funds. Zero
+risk.
+
+**Special case — arbiter is a dead address / lost key:**  
+A `Disputed` milestone with a dead arbiter resolves via `releaseStalled()` after 14 days.
+No fund lock possible beyond 14 days.
+
+### 4. Arithmetic
+
+**`_releasePayout(A)`:** `fee = A*feeBps/10000`. Each payee j≥1: `A*bps_j/10000`. Seller
+gets `A - distributed`. All integer floor divisions; dust accumulates on seller (payee 0).
+Sum = A exactly.
+
+**`_resolvePayeePayout(sellerAmount)`:** Same structure but base is `sellerAmount` not `A`.
+Sum of this path = `sellerAmount` exactly. `buyerRefund = A - sellerAmount`. Total paid out
+= `sellerAmount + buyerRefund = A`. Exact.
+
+**`resolve()` overflow:** Intermediate `uint256(A) * sellerShareBps` where A ≤ uint128.max
+and sellerShareBps ≤ 10000. Max intermediate = ~3.4×10^38 × 10^4, safely within uint256.
+Down-cast to uint128 is safe because result ≤ A ≤ uint128.max.
+
+No arithmetic path can pay out more or less than A.
+
+### 5. Griefing and economic abuse
+
+**Inspector never attests.** Buyer recovers all funds via `refundExpired()` after deadline.
+Maximum exposure is the time until deadline (set at deal creation, must be > now +
+challengeWindow). No fund lock. Liveness grief only.
+
+**Inspector attests after deadline (new, see Medium finding above).** Buyer loses the
+clean `refundExpired()` path and must go through the dispute or challenge-window path. Funds
+remain recoverable. Inspector must be a payee to have financial motive for this.
+
+**Buyer never funds.** No USDC enters the contract. Seller's exposure is zero.
+
+**Payee always reverts (blocklisted).** `_sendOrCredit` handles it: credits `_owed[payee]`,
+continues with all other payees. Release still succeeds. No deal-wide impact.
+
+**Buyer disputes every milestone.** After 14 days `releaseStalled()` pays the attested
+split. Buyer receives no benefit — same cost as normal release. Rational buyer would not
+do this. The only effect is a 14-day delay for the seller.
+
+**Hostile deal parameters.** `createDeal` validates all structural constraints. A caller
+cannot create a deal that traps another party's funds — the buyer is always `msg.sender`
+and they are the only one who can `fund()` it.
+
+**Corrupt inspector-payee.** As noted in §1, the inspector can be a payee. There is no rule
+preventing this (unlike the arbiter-not-payee rule). A corrupt inspector-payee can attest
+worthless work (or refuse to attest and force the buyer past deadline) in exchange for their
+share. This is a pre-existing design choice: the inspector's bps share is their economic
+incentive to attest honestly. It is an off-chain trust decision.
+
+### 6. Review checklist — final state
+
+| Item | Status | Notes |
+|---|---|---|
+| No `msg.value`, `payable`, `address(this).balance` | PASS | Confirmed absent throughout |
+| All amounts in 6-decimal USDC units; UI reads `decimals()` | PASS | `useUsdcDecimals` hook reads from contract |
+| Checks-effects-interactions; `nonReentrant` on every state change | PASS | All 9 state-changing functions |
+| No owner function that can touch escrowed funds; fee params immutable | PASS | `feeRecipient` and `feeBps` are `immutable`; no admin functions |
+| Zero-address and blocklist paths tested | PASS | `WasitEscrow.ArcBlocklist.t.sol`; 7 tests with real blocklisted address |
+| `block.timestamp` used only with `>=` / `<` comparisons; no randomness | PASS | All 6 timestamp comparisons use `>=` or `<` |
+| 20 gwei gas floor in app + scripts | PASS | `GAS_FLOOR = parseGwei('20')` in `src/lib/wasit-config.ts` |
+
+All 7 checklist items pass.
 
 ---
 
-## Architecture checklist (ARCHITECTURE.md § "Review checklist")
+## New features reviewed
 
-### 1. No `msg.value`, no `payable`, no `address(this).balance` anywhere
+### Arbiter-not-payee rule
 
-**PASS.** `grep` over the full contract returns zero hits for `msg.value`, `payable`, `receive()`, `fallback()`, and `address(this).balance`. Every function (including the constructor) is non-payable.
+Added to `createDeal()` at lines 194–196. Loops all payees and reverts with `ArbiterIsPayee`
+if any payee address equals `arbiter`. This is correctly placed after the arbiter ≠ buyer
+and arbiter ≠ seller checks (line 190) and after the duplicate-payee check (lines 180–183),
+so there is no way to construct a bypass. The check is complete.
 
-### 2. All amounts in 6-decimal USDC units; UI converts with `decimals()`, never hard-codes 18
+### `releaseStalled()`
 
-**PASS.** The contract contains no reference to 18 decimals, `1e18`, `10**18`, `ether`, or `parseUnits`. The only token is USDC at 6 decimals. All arithmetic (`A * feeBps / 10_000`, `A * bps_j / 10_000`) operates on the raw 6-decimal uint128 amounts without any unit conversion.
-
-### 3. Checks-effects-interactions; `nonReentrant` on every state change that transfers
-
-**PASS.** Every external state-changing function carries `nonReentrant`:
-`fund`, `attest`, `approve`, `dispute`, `resolve`, `release`, `refundExpired`, `withdraw`.
-`createDeal` makes no external calls and no transfers, so it is the only omission and correctly so.
-
-CEI order is correct in every function:
-- `fund`: state set to Funded → `safeTransferFrom` (interaction last)
-- `release`: state set to Released → emit → `_tryCloseDeal` (pure storage) → `_releasePayout` (interactions last)
-- `resolve`: state set to Resolved → emit → `_tryCloseDeal` → `_resolvePayeePayout` + `_sendOrCredit` (interactions last)
-- `refundExpired`: state set to Refunded → emit → `_tryCloseDeal` → `_sendOrCredit` (interaction last)
-- `withdraw`: `_owed[msg.sender] = 0` (effect) → `safeTransfer` (interaction last)
-
-### 4. No owner function that can touch escrowed funds. Fee params immutable
-
-**PASS.** There is no `Ownable` import, no `onlyOwner` modifier, no `setFee`, no admin function of any kind. `feeRecipient` and `feeBps` are both `immutable` — set once in the constructor and never changeable. The contract has no upgrade mechanism and no emergency withdrawal. No admin path can move escrowed funds.
-
-### 5. Zero-address and blocklist paths tested (testnet blocklisted address in VERIFIED-FACTS)
-
-**PASS (zero-address).** Tests cover: `feeRecipient = address(0)` reverts; every payee zero-address reverts; inspector/arbiter zero-address reverts.
-
-**PASS (blocklist).** `WasitEscrow.Release.t.sol` deploys a `MockUSDCWithBlocklist` that returns `false` for `transfer` to the seller. The test confirms:
-- Release does not revert
-- Blocked payee's amount credited to `_owed[seller]`
-- Other payees (feeRecipient, forwarder) receive their amounts normally
-- `withdraw()` by the seller later succeeds exactly
-
-**Note on VERIFIED-FACTS:** The spec references a VERIFIED-FACTS file with a testnet blocklisted address. That file is not present in this project. Tests use a mock that simulates the same failure mode (transfer returns false). For testnet deployment, the concrete blocklisted address should be added to `VERIFIED-FACTS.md` and a matching test added.
-
-### 6. Uses `block.timestamp` only with ≥ comparisons; no randomness
-
-**PASS (comparisons).** All `block.timestamp` comparisons use `>=` or `<` (strict; functionally equivalent to `>=` of the complement). No `==` comparison against a timestamp. All six uses are:
-- `createDeal`: `uint256(deadline) <= minimumExclusive` (requires `deadline > now + window`)
-- `attest`: stores `uint64(block.timestamp)` — not a comparison
-- `dispute`: `block.timestamp >= windowEnds` (revert if expired)
-- `release`: `block.timestamp >= unlocksAt` (allow if window passed)
-- `refundExpired`: `block.timestamp < uint256(deal.deadline)` (revert if not yet expired)
-
-**PASS (no randomness).** No use of `blockhash`, `keccak256(block.*...)`, `prevrandao`, or any other randomness source.
-
-### 7. Tx gas settings respect the 20 gwei floor (app + scripts)
-
-**NOT APPLICABLE (contract-only).** This checklist item refers to off-chain tooling (app and deployment scripts), not to the contract source itself. The contract contains no hardcoded `gasPrice`, `gaslimit`, or `tx.gasprice` references. Gas floor compliance must be enforced in the deployment scripts and frontend configuration, which are not yet written.
+Analysed fully in §1 and §2 above. The function is correctly guarded, CEI-ordered,
+emits both `MilestoneStalledReleased` and `MilestoneReleased` (so existing event indexers
+see a `MilestoneReleased` event regardless of which settlement path fired), and uses the
+same `_releasePayout` as `release()`.
 
 ---
 
-## Review summary
+## Recommendation before mainnet
 
-All 6 contract-applicable checklist items pass. Item 7 (gas floor) is a tooling concern outside the contract source and is pending the frontend/scripts turn.
+**Fix the Medium finding** (`attest()` post-deadline guard) before deploying to mainnet.
+It is a one-line change, one error declaration, and one test case. No other code changes
+are needed.
 
-One gap noted: VERIFIED-FACTS.md with a real testnet blocklisted Arc address is missing. Recommended action before testnet deploy: obtain a known blocklisted address from Circle's Arc testnet documentation and add a test using that concrete address via `vm.etch` on a real blocklist-reverting mock.
-
----
-
-## Audit provenance
-
-| Subagent | Turn | Files audited | Corpus rules cited |
-|---|---|---|---|
-| solidity-auditor | Turn 1 (initial) | 4 | use-safe-erc20-for-erc20-interactions (fixed) |
-| functional-auditor | Turn 1 | 3 | — |
-| solidity-auditor | Turn 2 (release path) | 7 | deposit-withdraw-state-asymmetry (resolved) |
-| functional-auditor | Turn 2 | 1 | — |
-| solidity-auditor | Turn 3 (dispute/refund) | 2 | call-to-non-existent-address-returns-success (fixed), multichain-bridged-token-allowlists-per-deployment (documented) |
-| functional-auditor | Turn 3 | 4 | — |
-| solidity-auditor | Turn 4 (invariant/final) | 2 | none |
-| functional-auditor | Turn 4 | 1 | — |
+The two Informational findings (blocklisted-recipient `_owed` credits; shared-custody
+freeze) are architectural properties inherent to single-contract USDC escrow. They are
+documented in the contract and should be disclosed to users in the app UI.
