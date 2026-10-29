@@ -87,7 +87,9 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
     // ── Scene + camera ────────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100)
-    camera.position.z = 2.5
+    // z=4.3 → visible half-height ≈ tan(21°)×4.3 ≈ 1.65 world units,
+    // giving clear margin around the globe (r=1.0) and ring (r=1.52).
+    camera.position.z = 4.3
     const clock = new THREE.Clock()
 
     // ── Textures ──────────────────────────────────────────────────────────────
@@ -123,24 +125,21 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       }),
     ))
 
-    // ── Gold ribbon ring (tilted, passes behind and in front of globe) ────────
-    // Uses a TorusGeometry with a very flat tube — wide, flat ring like Saturn
-    const RING_TILT = Math.PI / 5.5   // ~32° tilt
-    const ribbonGeo = new THREE.TorusGeometry(1.38, 0.045, 4, 180)
-    const ribbonMat = new THREE.MeshPhongMaterial({
+    // ── Gold Saturn-style ring (flat RingGeometry, depth-tested so it passes
+    //    behind the globe on the far side and in front on the near side) ──────
+    const ribbonGeo = new THREE.RingGeometry(1.26, 1.52, 180)
+    const ribbonMat = new THREE.MeshBasicMaterial({
       color:       new THREE.Color(GOLD),
-      emissive:    new THREE.Color(GOLD),
-      emissiveIntensity: 0.08,
       transparent: true,
-      opacity:     0.32,
+      opacity:     0.30,
       side:        THREE.DoubleSide,
       depthWrite:  false,
-      shininess:   60,
-      specular:    new THREE.Color(0.6, 0.45, 0.25),
     })
     const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat)
-    ribbon.rotation.x = RING_TILT
-    ribbon.rotation.z = Math.PI / 8
+    // Lie roughly horizontal (XZ-plane), then tilt ~24° toward viewer.
+    // rotation.x = π/2 rotates from XY-plane to XZ-plane; subtract 0.42 rad ≈ 24°.
+    ribbon.rotation.x = Math.PI / 2 - 0.42
+    ribbon.rotation.z = 0.18   // slight natural angle
     scene.add(ribbon)
 
     // ── Thin elliptical orbit rings ────────────────────────────────────────────
