@@ -67,8 +67,9 @@ export function Header({ currentPage, onNavigate }: Props) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '2px',
           flex: 1,
+          minWidth: 0,
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -79,7 +80,7 @@ export function Header({ currentPage, onNavigate }: Props) {
           onClick={() => onNavigate('home')}
         />
         <NavLink
-          label="Create deal"
+          label="Create"
           active={currentPage === 'create'}
           onClick={() => onNavigate('create')}
         />
@@ -91,7 +92,7 @@ export function Header({ currentPage, onNavigate }: Props) {
       </nav>
 
       {/* Right side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {/* Network badge — only when connected */}
         {address && (
           <NetworkBadge
@@ -100,8 +101,10 @@ export function Header({ currentPage, onNavigate }: Props) {
           />
         )}
 
-        {/* USDC balance */}
-        <UsdcBalance />
+        {/* USDC balance — hidden on very small screens */}
+        <span className="header-balance">
+          <UsdcBalance />
+        </span>
 
         {/* Wallet connect */}
         <ConnectKitButton.Custom>

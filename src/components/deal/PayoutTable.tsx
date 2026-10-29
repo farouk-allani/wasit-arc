@@ -24,7 +24,7 @@ export function PayoutTable({ rows, chainId }: Props) {
         Where the money went
       </p>
 
-      <div style={{
+      <div className="table-scroll" style={{
         border: '1px solid var(--border)',
         borderRadius: 'calc(var(--radius) - 0.125rem)',
         overflow: 'hidden',
@@ -32,11 +32,12 @@ export function PayoutTable({ rows, chainId }: Props) {
         {/* Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 120px 80px 110px',
+          gridTemplateColumns: '1fr 110px 70px 100px',
           gap: '0 8px',
           padding: '8px 12px',
           background: 'var(--elevated)',
           borderBottom: '1px solid var(--border)',
+          minWidth: '380px',
         }}>
           {['Recipient', 'Amount', 'Status', 'Tx'].map(h => (
             <span key={h} style={{
@@ -57,12 +58,13 @@ export function PayoutTable({ rows, chainId }: Props) {
           return (
             <div key={idx} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 120px 80px 110px',
+              gridTemplateColumns: '1fr 110px 70px 100px',
               gap: '0 8px',
               padding: '9px 12px',
               alignItems: 'center',
               borderBottom: idx < rows.length - 1 ? '1px solid var(--border)' : 'none',
               background: row.credited ? 'rgb(231 176 87 / 0.05)' : 'transparent',
+              minWidth: '380px',
             }}>
               {/* Recipient */}
               <div>

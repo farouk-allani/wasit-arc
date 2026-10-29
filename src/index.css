@@ -110,3 +110,79 @@ body {
   --normal-border: var(--border);
   --normal-text: var(--foreground);
 }
+
+/* ── Skeleton loading animation ─────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.skeleton {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* ── Spin ───────────────────────────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ── Horizontal scroll wrapper for wide tables on small screens ──────────────── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > * {
+  min-width: 480px;
+}
+
+/* ── Header mobile: hide nav labels below 480px ────────────────────────────── */
+@media (max-width: 479px) {
+  .nav-label { display: none; }
+  .header-balance { display: none; }
+}
+
+/* ── Milestone card body: stack actions on small screens ─────────────────────── */
+@media (max-width: 600px) {
+  .milestone-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Payee row: stack on phone ───────────────────────────────────────────────── */
+.payee-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 80px 32px;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 540px) {
+  .payee-row {
+    grid-template-columns: 1fr 32px;
+    grid-template-rows: auto auto;
+  }
+  .payee-row .payee-addr  { grid-column: 1; grid-row: 1; }
+  .payee-row .payee-role  { grid-column: 1; grid-row: 2; }
+  .payee-row .payee-bps   { grid-column: 2; grid-row: 2; width: 80px; }
+  .payee-row .payee-del   { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+
+/* ── Milestone row: stack on phone ──────────────────────────────────────────── */
+.milestone-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 32px;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .milestone-row {
+    grid-template-columns: 1fr 32px;
+    grid-template-rows: auto auto;
+  }
+  .milestone-row .ms-label  { grid-column: 1; grid-row: 1; }
+  .milestone-row .ms-amount { grid-column: 1; grid-row: 2; }
+  .milestone-row .ms-del    { grid-column: 2; grid-row: 1; justify-self: end; }
+}

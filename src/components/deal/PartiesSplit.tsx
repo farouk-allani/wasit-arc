@@ -39,7 +39,7 @@ export function PartiesSplit({ deal, payees, feeBps }: Props) {
         Parties &amp; split
       </h2>
 
-      <div style={{
+      <div className="table-scroll" style={{
         background: 'var(--card)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius)',
@@ -48,11 +48,12 @@ export function PartiesSplit({ deal, payees, feeBps }: Props) {
         {/* Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 100px 80px 120px',
+          gridTemplateColumns: '1fr 90px 70px 110px',
           gap: '0 12px',
           padding: '10px 16px',
           borderBottom: '1px solid var(--border)',
           background: 'var(--elevated)',
+          minWidth: '380px',
         }}>
           {['Role / Address', 'Bps', 'Share', '100 USDC release'].map((h) => (
             <span key={h} style={{
@@ -94,11 +95,12 @@ export function PartiesSplit({ deal, payees, feeBps }: Props) {
         {preview && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 100px 80px 120px',
+            gridTemplateColumns: '1fr 90px 70px 110px',
             gap: '0 12px',
             padding: '10px 16px',
             borderTop: '1px solid var(--border)',
             background: 'var(--elevated)',
+            minWidth: '380px',
           }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>Total</span>
             <span />
@@ -129,12 +131,13 @@ function SplitRow({
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 100px 80px 120px',
+      gridTemplateColumns: '1fr 90px 70px 110px',
       gap: '0 12px',
       padding: '10px 16px',
       borderBottom: last ? 'none' : '1px solid var(--border)',
       background: isFee ? 'rgb(221 184 134 / 0.04)' : 'transparent',
       alignItems: 'center',
+      minWidth: '380px',
     }}>
       <div>
         <span style={{

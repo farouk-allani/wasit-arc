@@ -400,8 +400,9 @@ function PayeeRowInput({
 }) {
   const isSeller = index === 0
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px 32px', gap: '6px', alignItems: 'center' }}>
+    <div className="payee-row">
       <input
+        className="payee-addr"
         type="text"
         value={value.addr}
         onChange={(e) => onChange('addr', e.target.value)}
@@ -410,6 +411,7 @@ function PayeeRowInput({
         style={{ ...textInputStyle, fontFamily: 'var(--font-mono)', fontSize: '12px' }}
       />
       <input
+        className="payee-role"
         type="text"
         value={value.role}
         onChange={(e) => onChange('role', e.target.value)}
@@ -417,7 +419,7 @@ function PayeeRowInput({
         style={{ ...textInputStyle, fontSize: '12px' }}
         readOnly={isSeller}
       />
-      <div style={{ position: 'relative' }}>
+      <div className="payee-bps" style={{ position: 'relative' }}>
         <input
           type="number"
           value={value.bps}
@@ -430,6 +432,7 @@ function PayeeRowInput({
         <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--muted-foreground)', pointerEvents: 'none' }}>bps</span>
       </div>
       <button
+        className="payee-del"
         onClick={onRemove}
         disabled={!canRemove}
         title={isSeller ? 'Seller row cannot be removed' : 'Remove payee'}
@@ -464,15 +467,16 @@ function MilestoneRowInput({
   canRemove: boolean
 }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 32px', gap: '6px', alignItems: 'center' }}>
+    <div className="milestone-row">
       <input
+        className="ms-label"
         type="text"
         value={value.label}
         onChange={(e) => onChange('label', e.target.value)}
         placeholder={`Milestone ${index + 1}`}
         style={{ ...textInputStyle, fontSize: '13px' }}
       />
-      <div style={{ position: 'relative' }}>
+      <div className="ms-amount" style={{ position: 'relative' }}>
         <input
           type="text"
           value={value.amount}
@@ -483,6 +487,7 @@ function MilestoneRowInput({
         <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--muted-foreground)', pointerEvents: 'none' }}>USDC</span>
       </div>
       <button
+        className="ms-del"
         onClick={onRemove}
         disabled={!canRemove}
         style={{
