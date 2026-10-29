@@ -52,8 +52,8 @@ export function Home({ onNavigate }: Props) {
         {/* Background photo */}
         <div style={S.photo}>
           <img
-            src="/hero/port-dusk-globe.webp"
-            srcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
+            src="/hero/port-dusk.webp"
+            srcSet="/hero/port-dusk-1280.webp 1280w, /hero/port-dusk.webp 2400w"
             sizes="100vw"
             alt=""
             aria-hidden="true"

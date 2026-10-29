@@ -152,18 +152,21 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       }
       return new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.22, depthWrite: false }),
+        // Thin, low-opacity lines — reads as quiet backdrop, not the subject
+        new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.10, depthWrite: false }),
       )
     }
 
     ROUTES.forEach((r, idx) => {
+      // Alternate between a desaturated gold and a steel-blue — never fully saturated
       const color = idx % 2 === 0 ? GOLD : STEEL
       const arc   = buildArc(r[0], r[1], r[2], r[3], 80, color)
       routeGroup.add(arc)
 
       const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.012, 8, 8),
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.85, depthWrite: false }),
+        new THREE.SphereGeometry(0.009, 8, 8),
+        // Pulse dots are subtle — same hue, low opacity
+        new THREE.MeshBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.45, depthWrite: false }),
       )
       const userData: PulseData = {
         routeIdx: idx,
