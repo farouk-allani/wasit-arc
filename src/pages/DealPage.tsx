@@ -10,6 +10,7 @@ import { useAccount, useChainId } from 'wagmi'
 import { usePublicClient } from 'wagmi'
 import { parseAbiItem, decodeEventLog, type Log } from 'viem'
 import { AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react'
+import { PageHeader } from '../components/ui'
 
 import { useDeal } from '../hooks/useDeal'
 import { DealHeader } from '../components/deal/DealHeader'
@@ -273,33 +274,27 @@ export function DealPage({ dealId, onBack }: Props) {
 // ── Layout wrappers ───────────────────────────────────────────────────────────
 function PageWrapper({ dealId, onBack, children }: { dealId: string; onBack: () => void; children: React.ReactNode }) {
   return (
-    <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 20px 80px' }}>
+    <main style={{ maxWidth: '860px', margin: '0 auto', padding: '0 20px 80px' }}>
       {/* Back link */}
-      <button
-        onClick={onBack}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--muted-foreground)', fontSize: '13px',
-          fontFamily: 'var(--font-ui)', padding: '0 0 24px',
-        }}
-      >
-        <ArrowLeft size={14} /> My deals
-      </button>
-
-      {/* Page title */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '28px' }}>
-        <span style={{
-          fontSize: '11px', fontFamily: 'var(--font-mono)',
-          color: 'var(--muted-foreground)', letterSpacing: '0.08em', textTransform: 'uppercase',
-        }}>Deal</span>
-        <h1 style={{
-          fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 700,
-          color: 'var(--foreground)', margin: 0, fontVariantNumeric: 'tabular-nums',
-        }}>
-          #{dealId}
-        </h1>
+      <div style={{ paddingTop: '24px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--muted-foreground)', fontSize: '13px',
+            fontFamily: 'var(--font-ui)', padding: 0,
+          }}
+        >
+          <ArrowLeft size={14} /> My deals
+        </button>
       </div>
+
+      <PageHeader
+        eyebrow="Wasit escrow"
+        title={`Deal #${dealId}`}
+        description="Milestone-by-milestone escrow settled in USDC on Arc."
+      />
 
       {children}
     </main>

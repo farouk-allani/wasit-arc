@@ -10,6 +10,7 @@ import { AlertTriangle, ArrowRight, Plus, RefreshCw, Search, Zap } from 'lucide-
 import { useMyDeals, type DealSummary } from '../hooks/useMyDeals'
 import { fmtUsdc } from '../lib/split'
 import { buildTxExplorerUrl } from '../onchain-facts'
+import { PageHeader, Badge } from '../components/ui'
 
 interface Props {
   onOpenDeal: (dealId: string) => void
@@ -25,49 +26,18 @@ function fmtDeadline(ts: bigint): string {
   return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
 }
 
-const DEAL_STATE_PILL: Record<string, React.CSSProperties> = {
-  Created: { background: 'rgb(180 191 207 / 0.12)', color: 'var(--secondary-foreground)', border: '1px solid var(--border)' },
-  Funded:  { background: 'rgb(92 196 154 / 0.12)',  color: 'var(--success)',              border: '1px solid rgb(92 196 154 / 0.3)' },
-  Closed:  { background: 'rgb(180 191 207 / 0.08)', color: 'var(--muted-foreground)',      border: '1px solid var(--border)' },
-}
+type BadgeVariant = 'neutral' | 'success' | 'warning' | 'destructive' | 'primary'
 
 function StatePill({ state }: { state: string }) {
-  return (
-    <span style={{
-      ...(DEAL_STATE_PILL[state] ?? DEAL_STATE_PILL.Created),
-      padding: '2px 8px',
-      borderRadius: '99px',
-      fontSize: '10px',
-      fontWeight: 600,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase',
-      fontFamily: 'var(--font-ui)',
-      whiteSpace: 'nowrap',
-    }}>
-      {state}
-    </span>
-  )
+  const variant: BadgeVariant =
+    state === 'Funded' ? 'success' :
+    state === 'Closed' ? 'neutral' : 'neutral'
+  return <Badge variant={variant}>{state}</Badge>
 }
 
 function RolePill({ role }: { role: string }) {
-  const gold = role === 'Buyer' || role === 'Seller'
-  return (
-    <span style={{
-      padding: '2px 7px',
-      borderRadius: '99px',
-      fontSize: '10px',
-      fontWeight: 600,
-      letterSpacing: '0.05em',
-      textTransform: 'uppercase',
-      fontFamily: 'var(--font-ui)',
-      background: gold ? 'rgb(221 184 134 / 0.12)' : 'rgb(154 168 186 / 0.10)',
-      color: gold ? 'var(--primary)' : 'var(--muted-foreground)',
-      border: gold ? '1px solid rgb(221 184 134 / 0.25)' : '1px solid var(--border)',
-      whiteSpace: 'nowrap',
-    }}>
-      {role}
-    </span>
-  )
+  const isPrincipal = role === 'Buyer' || role === 'Seller'
+  return <Badge variant={isPrincipal ? 'primary' : 'neutral'} dot={false}>{role}</Badge>
 }
 
 // ── Skeleton row ───────────────────────────────────────────────────────────────
@@ -455,23 +425,12 @@ export function MyDeals({ onOpenDeal, onCreateDeal }: Props) {
 // ── Page shell ─────────────────────────────────────────────────────────────────
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <main style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 16px 80px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{
-          fontFamily: 'var(--font-ui)',
-          fontSize: '24px',
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
-          color: 'var(--foreground)',
-          margin: '0 0 4px',
-        }}>
-          My deals
-        </h1>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: '13px', margin: 0 }}>
-          Deals where you are buyer, payee, inspector or arbiter.
-        </p>
-      </div>
-
+    <main style={{ maxWidth: '800px', margin: '0 auto', padding: '0 16px 80px' }}>
+      <PageHeader
+        eyebrow="Wasit escrow"
+        title="My deals"
+        description="All deals where your wallet is buyer, payee, inspector, or arbiter."
+      />
       <div style={{
         background: 'var(--card)',
         border: '1px solid var(--border)',
