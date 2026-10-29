@@ -244,17 +244,6 @@ body {
   opacity: 0.9;
 }
 
-.hero-headline {
-  margin: 0 0 20px;
-  font-family: var(--font-ui);
-  font-size: clamp(28px, 5.5vw, 48px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: var(--foreground);
-  text-wrap: balance;
-}
-
 .hero-subhead {
   margin: 0 0 36px;
   font-size: clamp(14px, 2vw, 16px);
@@ -269,56 +258,7 @@ body {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-
-.btn-primary {
-  padding: 11px 28px;
-  border-radius: var(--radius);
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
-  letter-spacing: -0.01em;
-}
-.btn-primary:hover { background: #c9a470; }
-
-.btn-secondary {
-  padding: 11px 28px;
-  border-radius: var(--radius);
-  background: rgba(255,255,255,0.07);
-  color: var(--foreground);
-  border: 1px solid rgba(255,255,255,0.18);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  backdrop-filter: blur(4px);
-  letter-spacing: -0.01em;
-}
-.btn-secondary:hover { background: rgba(255,255,255,0.12); }
-
-/* Powered-by row */
-.hero-powered {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hero-powered-item {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-.hero-powered-sep {
-  color: var(--border);
-  font-size: 14px;
+  margin-bottom: 20px;
 }
 
 /* Right column — globe; hidden on mobile */
@@ -364,23 +304,14 @@ body {
     flex: 1;
     align-items: center;
     justify-content: center;
-    /* Clip the canvas to the column — prevents globe bleeding over the headline */
-    overflow: hidden;
+    /* Overflow visible so globe can bleed slightly past the column edge */
+    overflow: visible;
     padding: 24px 0 24px 24px;
-  }
-
-  .hero-globe {
-    /* Noticeably smaller than before, with clear breathing room */
-    width: min(100%, 360px);
-    height: min(100%, 360px);
-    min-height: 0;
-    flex-shrink: 0;
   }
 }
 
 @media (min-width: 1200px) {
   .hero-content { padding: 140px 72px 100px; }
-  .hero-globe   { width: 400px; height: 400px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
@@ -397,53 +328,284 @@ body {
   backdrop-filter: blur(16px) !important;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* HOW IT WORKS strip                                                           */
-/* ─────────────────────────────────────────────────────────────────────────── */
-.how-section {
-  background: var(--background);
-  padding: 56px 24px 64px;
-}
-.how-inner {
-  max-width: 960px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
-}
-@media (min-width: 640px) {
-  .how-inner { grid-template-columns: repeat(3, 1fr); gap: 40px; }
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* HERO ENHANCEMENTS                                                            */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── Two-tone headline ───────────────────────────────────────────────────────── */
+.hero-headline-gold {
+  color: var(--primary);
 }
 
-.how-step {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
+/* ── Larger headline + tighter leading ──────────────────────────────────────── */
+.hero-headline {
+  margin: 0 0 20px;
+  font-family: var(--font-ui);
+  font-size: clamp(32px, 5.8vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--foreground);
+  text-wrap: balance;
 }
-.how-step-num {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
+
+/* ── Buttons — slightly larger, primary gets right-arrow flex ───────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 32px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.btn-primary:hover { background: #c9a470; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 32px;
+  border-radius: var(--radius);
+  background: rgba(11, 22, 36, 0.72);
+  color: var(--foreground);
+  border: 1px solid rgba(180, 191, 207, 0.28);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(6px);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.btn-secondary:hover {
+  background: rgba(11, 22, 36, 0.88);
+  border-color: rgba(180, 191, 207, 0.44);
+}
+
+/* ── Globe wrapper: position:relative so cards can be absolutely placed ─────── */
+.hero-globe-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Floating status cards ───────────────────────────────────────────────────── */
+.float-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 14px 10px;
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(11, 22, 36, 0.62);
+  border: 1px solid rgba(180, 191, 207, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 0;
+  pointer-events: none;
+}
+.float-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.float-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(221, 184, 134, 0.12);
   color: var(--primary);
-  margin-top: 1px;
+  flex-shrink: 0;
 }
-.how-step-title {
-  margin: 0 0 4px;
+.float-card-title {
+  font-size: 12px;
   font-weight: 600;
-  font-size: 14px;
   color: var(--foreground);
+  letter-spacing: -0.01em;
 }
-.how-step-body {
+.float-card-line {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--muted-foreground);
+  max-width: 22ch;
+}
+.float-card-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.float-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.float-card-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--secondary-foreground);
+  letter-spacing: 0.02em;
+}
+
+/* ── Card positions relative to globe-wrap ──────────────────────────────────── */
+/* Hidden on mobile; shown and positioned on desktop */
+.hero-float-card {
+  display: none;
+  position: absolute;
+  z-index: 3;
+}
+
+/* ── Mobile: cards shown inline below headline ──────────────────────────────── */
+.hero-cards-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.inline-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(11, 22, 36, 0.55);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+
+/* ── Hero strip ──────────────────────────────────────────────────────────────── */
+.hero-strip {
+  border-top: 1px solid rgba(180, 191, 207, 0.12);
+  background: rgba(11, 22, 36, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 14px 24px;
+}
+.hero-strip-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  row-gap: 10px;
+}
+.hero-strip-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+}
+.hero-strip-group:first-child { padding-left: 0; }
+.hero-strip-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.hero-strip-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.hero-strip-arc {
+  font-family: var(--font-ui);
+  font-style: italic;
+  color: var(--primary);
+}
+.hero-strip-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(180, 191, 207, 0.15);
+  flex-shrink: 0;
+}
+.hero-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hero-strip-group--network {
+  margin-left: auto;
+  padding-right: 0;
+}
+
+@media (max-width: 540px) {
+  .hero-strip-divider--hide-sm { display: none; }
+  .hero-strip-group--network {
+    margin-left: 0;
+    padding-left: 0;
+  }
+  .hero-strip-inner {
+    column-gap: 0;
+  }
+}
+
+/* ── Desktop: float cards positioned, mobile cards hidden ───────────────────── */
+@media (min-width: 900px) {
+  .hero-cards-mobile { display: none; }
+
+  .hero-float-card { display: block; }
+
+  /* Upper-left of the globe — slightly overlaps the left edge */
+  .hero-float-card--ul {
+    top: 12%;
+    left: -6%;
+    width: 200px;
+  }
+  /* Upper-right — clips the top-right */
+  .hero-float-card--ur {
+    top: 8%;
+    right: -4%;
+    width: 195px;
+  }
+  /* Lower-right — bottom corner of the globe */
+  .hero-float-card--lr {
+    bottom: 14%;
+    right: -6%;
+    width: 215px;
+  }
+
+  /* Globe: larger, bleeds slightly past right column edge */
+  .hero-right {
+    overflow: visible;   /* allow globe bleed */
+  }
+  .hero-globe {
+    width: min(100% + 40px, 460px);
+    height: min(100% + 40px, 460px);
+    margin-right: -20px;  /* controlled right-bleed */
+    min-height: 0;
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero-globe {
+    width: 520px;
+    height: 520px;
+    margin-right: -32px;
+  }
+  .hero-float-card--ul { width: 220px; left: -8%; }
+  .hero-float-card--ur { width: 210px; right: -6%; }
+  .hero-float-card--lr { width: 230px; right: -8%; }
 }

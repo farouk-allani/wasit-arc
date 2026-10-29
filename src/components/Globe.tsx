@@ -11,7 +11,7 @@
  *   - animation paused when tab is hidden (visibilitychange)
  *   - animation paused when scrolled out of view (IntersectionObserver)
  *   - renderer disposed on unmount
- *   - three.js is a dynamic import → lands in its own rollup chunk
+ *   - three.js is in its own rollup chunk (manualChunks in vite.config.ts)
  */
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
@@ -26,6 +26,11 @@ const ROUTES: [number, number, number, number][] = [
 
 const GOLD  = '#ddb886'
 const STEEL = '#b4bfcf'
+// Endpoint cities: all four route start+end points
+const ENDPOINTS = ROUTES.flatMap(r => [
+  [r[0], r[1]] as [number, number],
+  [r[2], r[3]] as [number, number],
+])
 
 function latLngToVec3(lat: number, lng: number, r: number): THREE.Vector3 {
   const phi   = (90 - lat)  * (Math.PI / 180)
@@ -56,7 +61,6 @@ interface Props {
 }
 
 export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) {
-  // Decide at mount time whether to use the canvas — avoids synchronous setState-in-effect
   const useCanvas = !prefersReducedMotion() && canUseWebGL()
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -69,25 +73,24 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
     let animId   = 0
     let paused   = false
 
-    // container is non-null here (guarded above); assert for TS closure analysis
     const el = container
-    const W = el.clientWidth  || 420
-    const H = el.clientHeight || 420
+    const W = el.clientWidth  || 460
+    const H = el.clientHeight || 460
 
-    // ── Renderer ────────────────────────────────────────────────────────────
+    // ── Renderer ─────────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(W, H)
     renderer.setClearColor(0x000000, 0)
     el.appendChild(renderer.domElement)
 
-    // ── Scene + camera ───────────────────────────────────────────────────────
+    // ── Scene + camera ────────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 100)
-    camera.position.z = 2.6
+    const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100)
+    camera.position.z = 2.5
     const clock = new THREE.Clock()
 
-    // ── Textures ─────────────────────────────────────────────────────────────
+    // ── Textures ──────────────────────────────────────────────────────────────
     const loader   = new THREE.TextureLoader()
     const dayTex   = loader.load('/hero/earth-day.webp')
     const nightTex = loader.load('/hero/earth-night.webp')
@@ -120,7 +123,52 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       }),
     ))
 
-    // ── Lights ───────────────────────────────────────────────────────────────
+    // ── Gold ribbon ring (tilted, passes behind and in front of globe) ────────
+    // Uses a TorusGeometry with a very flat tube — wide, flat ring like Saturn
+    const RING_TILT = Math.PI / 5.5   // ~32° tilt
+    const ribbonGeo = new THREE.TorusGeometry(1.38, 0.045, 4, 180)
+    const ribbonMat = new THREE.MeshPhongMaterial({
+      color:       new THREE.Color(GOLD),
+      emissive:    new THREE.Color(GOLD),
+      emissiveIntensity: 0.08,
+      transparent: true,
+      opacity:     0.32,
+      side:        THREE.DoubleSide,
+      depthWrite:  false,
+      shininess:   60,
+      specular:    new THREE.Color(0.6, 0.45, 0.25),
+    })
+    const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat)
+    ribbon.rotation.x = RING_TILT
+    ribbon.rotation.z = Math.PI / 8
+    scene.add(ribbon)
+
+    // ── Thin elliptical orbit rings ────────────────────────────────────────────
+    const ORBIT_CONFIGS: [number, number, number][] = [
+      [1.55, Math.PI / 3,       0],             // first orbit ring, tilted ~60°
+      [1.72, -Math.PI / 6, Math.PI / 5],        // second orbit ring
+    ]
+    ORBIT_CONFIGS.forEach(([radius, rotX, rotZ]) => {
+      const pts: THREE.Vector3[] = []
+      for (let i = 0; i <= 128; i++) {
+        const a = (i / 128) * Math.PI * 2
+        pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius))
+      }
+      const orbitLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({
+          color: new THREE.Color(STEEL),
+          transparent: true,
+          opacity: 0.11,
+          depthWrite: false,
+        }),
+      )
+      orbitLine.rotation.x = rotX
+      orbitLine.rotation.z = rotZ
+      scene.add(orbitLine)
+    })
+
+    // ── Lights ────────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0xffffff, 0.18))
     const key = new THREE.DirectionalLight(0xe8f0ff, 1.1)
     key.position.set(3, 1.5, 2)
@@ -137,7 +185,10 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
     type PulseData = { routeIdx: number; arcPts: THREE.BufferAttribute }
     const pulseDots: THREE.Mesh[] = []
 
-    function buildArc(lat0: number, lng0: number, lat1: number, lng1: number, segments: number, color: string): THREE.Line {
+    function buildArc(
+      lat0: number, lng0: number, lat1: number, lng1: number,
+      segments: number, color: string,
+    ): THREE.Line {
       const p0  = latLngToVec3(lat0, lng0, 1.01)
       const p1  = latLngToVec3(lat1, lng1, 1.01)
       const mid = p0.clone().add(p1).normalize().multiplyScalar(1.18)
@@ -152,21 +203,28 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       }
       return new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
-        // Thin, low-opacity lines — reads as quiet backdrop, not the subject
-        new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.10, depthWrite: false }),
+        new THREE.LineBasicMaterial({
+          color: new THREE.Color(color),
+          transparent: true,
+          opacity: 0.13,
+          depthWrite: false,
+        }),
       )
     }
 
     ROUTES.forEach((r, idx) => {
-      // Alternate between a desaturated gold and a steel-blue — never fully saturated
       const color = idx % 2 === 0 ? GOLD : STEEL
       const arc   = buildArc(r[0], r[1], r[2], r[3], 80, color)
       routeGroup.add(arc)
 
       const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.009, 8, 8),
-        // Pulse dots are subtle — same hue, low opacity
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.45, depthWrite: false }),
+        new THREE.SphereGeometry(0.010, 8, 8),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(color),
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
       )
       const userData: PulseData = {
         routeIdx: idx,
@@ -177,7 +235,38 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       pulseDots.push(dot)
     })
 
-    // ── Resize ───────────────────────────────────────────────────────────────
+    // ── Endpoint glowing points ────────────────────────────────────────────────
+    ENDPOINTS.forEach(([lat, lng]) => {
+      const pos = latLngToVec3(lat, lng, 1.012)
+
+      // Inner bright dot
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.014, 8, 8),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(GOLD),
+          transparent: true,
+          opacity: 0.75,
+          depthWrite: false,
+        }),
+      )
+      dot.position.copy(pos)
+      routeGroup.add(dot)
+
+      // Soft halo — larger sphere, very low opacity
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.032, 8, 8),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(GOLD),
+          transparent: true,
+          opacity: 0.12,
+          depthWrite: false,
+        }),
+      )
+      halo.position.copy(pos)
+      routeGroup.add(halo)
+    })
+
+    // ── Resize ────────────────────────────────────────────────────────────────
     function onResize() {
       const W2 = el.clientWidth
       const H2 = el.clientHeight
@@ -191,8 +280,11 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
     function onVis() { paused = document.hidden }
     document.addEventListener('visibilitychange', onVis)
 
-    // ── Intersection observer ─────────────────────────────────────────────────
-    const observer = new IntersectionObserver(([e]) => { paused = !e.isIntersecting }, { threshold: 0 })
+    // ── Intersection observer ──────────────────────────────────────────────────
+    const observer = new IntersectionObserver(
+      ([e]) => { paused = !e.isIntersecting },
+      { threshold: 0 },
+    )
     observer.observe(el)
 
     // ── Render loop ───────────────────────────────────────────────────────────
@@ -204,8 +296,10 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       if (paused) return
 
       const dt = clock.getDelta()
-      globe.rotation.y += 0.04 * dt
-      routeGroup.rotation.y = globe.rotation.y
+      globe.rotation.y      += 0.04 * dt
+      routeGroup.rotation.y  = globe.rotation.y
+      // Ribbon rotates with the globe on Y but keeps its own tilt
+      ribbon.rotation.y = globe.rotation.y * 0.6
 
       pulseDots.forEach((dot) => {
         const { routeIdx, arcPts } = dot.userData as PulseData
@@ -225,8 +319,8 @@ export function Globe({ fallbackSrc, fallbackSrcSet, className, style }: Props) 
       window.removeEventListener('resize', onResize)
       document.removeEventListener('visibilitychange', onVis)
       renderer.dispose()
-      const el = renderer.domElement
-      el.parentNode?.removeChild(el)
+      const domEl = renderer.domElement
+      domEl.parentNode?.removeChild(domEl)
     }
   }, [useCanvas])
 

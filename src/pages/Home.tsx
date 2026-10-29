@@ -1,8 +1,10 @@
 /**
- * Home — hero landing page for Wasit.
- * Full-bleed port-dusk photograph, navy scrims, two-column layout with
- * a lazy-loaded WebGL globe, and a compact how-it-works strip below.
+ * Home — hero only.
+ * Two-tone headline, frosted status cards, full-width bottom strip.
  */
+import { ArrowRight, Wallet, BadgeCheck, Split } from 'lucide-react'
+import { TokenUSDC } from '@web3icons/react'
+import { useChainId } from 'wagmi'
 import { Globe } from '../components/Globe'
 
 interface Props {
@@ -11,22 +13,18 @@ interface Props {
 
 // ── Inline style helpers ──────────────────────────────────────────────────────
 const S = {
-  // Hero wrapper — full-bleed, min 86svh
   hero: {
     position: 'relative' as const,
-    minHeight: '86svh',
+    minHeight: '92svh',
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden',
   },
-
-  // Photo layer — absolutely fills the hero
   photo: {
     position: 'absolute' as const,
     inset: 0,
     zIndex: 0,
   },
-
   photoImg: {
     width: '100%',
     height: '100%',
@@ -34,8 +32,6 @@ const S = {
     objectPosition: 'center 60%',
     display: 'block',
   },
-
-  // Scrim layers — stacked via z-index
   scrimBase: {
     position: 'absolute' as const,
     inset: 0,
@@ -45,9 +41,12 @@ const S = {
 } as const
 
 export function Home({ onNavigate }: Props) {
+  const chainId = useChainId()
+  const networkLabel = chainId === 5042 ? 'Arc Mainnet' : 'Arc Testnet'
+  const isMainnet = chainId === 5042
+
   return (
     <div>
-      {/* ── HERO ────────────────────────────────────────────────────────── */}
       <section style={S.hero} aria-label="Hero">
         {/* Background photo */}
         <div style={S.photo}>
@@ -62,115 +61,201 @@ export function Home({ onNavigate }: Props) {
           />
         </div>
 
-        {/* Scrim — mobile: bottom-up; desktop: left-to-right (via CSS class) */}
-        <div className="hero-scrim-mobile" style={S.scrimBase} />
+        {/* Scrims */}
+        <div className="hero-scrim-mobile"  style={S.scrimBase} />
         <div className="hero-scrim-desktop" style={S.scrimBase} />
-        {/* Bottom page-blend fade */}
-        <div className="hero-scrim-bottom" style={S.scrimBase} />
+        <div className="hero-scrim-bottom"  style={S.scrimBase} />
 
         {/* Content grid */}
         <div className="hero-content" style={{ position: 'relative', zIndex: 2, flex: 1 }}>
-          {/* ── Left column ──────────────────────────────────────────────── */}
+
+          {/* ── LEFT ──────────────────────────────────────────────────────────── */}
           <div className="hero-left">
-            {/* Eyebrow */}
             <p className="hero-eyebrow">
               Milestone escrow for cross-border trade&nbsp;&mdash; Built on Arc
             </p>
 
-            {/* Headline */}
             <h1 className="hero-headline">
-              Milestone escrow for cross-border trade deals.
+              Milestone escrow for{' '}
+              <span className="hero-headline-gold">cross-border trade deals.</span>
             </h1>
 
-            {/* Subhead */}
             <p className="hero-subhead">
               The buyer funds once. Each milestone pays everyone at once, in USDC —
               seller, forwarder, inspector and fee, in a single transaction. Disputes
               go to an arbiter chosen at the start.
             </p>
 
-            {/* Actions */}
             <div className="hero-actions">
-              <button
-                className="btn-primary"
-                onClick={() => onNavigate('create')}
-              >
+              <button className="btn-primary" onClick={() => onNavigate('create')}>
                 Create a deal
+                <ArrowRight size={15} strokeWidth={2.2} style={{ marginLeft: 8 }} />
               </button>
-              <button
-                className="btn-secondary"
-                onClick={() => onNavigate('deals')}
-              >
+              <button className="btn-secondary" onClick={() => onNavigate('deals')}>
                 My deals
               </button>
             </div>
 
-            {/* Powered-by strip */}
-            <div className="hero-powered">
-              <PoweredByItem label="USDC" />
-              <span className="hero-powered-sep" aria-hidden="true">·</span>
-              <PoweredByItem label="Arc" />
+            {/* Status cards — shown inline on phones, positioned on desktop */}
+            <div className="hero-cards-mobile" aria-hidden="true">
+              <StatusCardInline
+                icon={<Wallet size={15} />}
+                title="Buyer"
+                line="Funds the whole deal once, in USDC."
+                dotColor="var(--success)"
+                label="Funded"
+              />
+              <StatusCardInline
+                icon={<BadgeCheck size={15} />}
+                title="Inspector"
+                line="Signs that the milestone is done."
+                dotColor="var(--success)"
+                label="Attested"
+              />
+              <StatusCardInline
+                icon={<Split size={15} />}
+                title="One release"
+                line="Pays seller, forwarder, inspector and fee."
+                dotColor="var(--primary)"
+                label="Split in one transaction"
+              />
             </div>
           </div>
 
-          {/* ── Right column — globe ─────────────────────────────────────── */}
+          {/* ── RIGHT — globe + floating cards ───────────────────────────────── */}
           <div className="hero-right" aria-hidden="true">
-            <Globe
-              fallbackSrc="/hero/port-dusk-globe.webp"
-              fallbackSrcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
-              className="hero-globe"
-            />
+            {/* Floating cards — desktop only */}
+            <div className="hero-globe-wrap">
+              <div className="hero-float-card hero-float-card--ul">
+                <FloatCard
+                  icon={<Wallet size={14} />}
+                  title="Buyer"
+                  line="Funds the whole deal once, in USDC."
+                  dotColor="var(--success)"
+                  label="Funded"
+                />
+              </div>
+              <div className="hero-float-card hero-float-card--ur">
+                <FloatCard
+                  icon={<BadgeCheck size={14} />}
+                  title="Inspector"
+                  line="Signs that the milestone is done."
+                  dotColor="var(--success)"
+                  label="Attested"
+                />
+              </div>
+              <div className="hero-float-card hero-float-card--lr">
+                <FloatCard
+                  icon={<Split size={14} />}
+                  title="One release"
+                  line="Pays seller, forwarder, inspector and fee."
+                  dotColor="var(--primary)"
+                  label="Split in one transaction"
+                />
+              </div>
+
+              <Globe
+                fallbackSrc="/hero/port-dusk-globe.webp"
+                fallbackSrcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
+                className="hero-globe"
+              />
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
-      <section className="how-section" aria-label="How it works">
-        <div className="how-inner">
-          {HOW_STEPS.map((step, i) => (
-            <HowStep key={i} index={i + 1} title={step.title} body={step.body} />
-          ))}
+        {/* ── BOTTOM STRIP ─────────────────────────────────────────────────── */}
+        <div className="hero-strip" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="hero-strip-inner">
+            <div className="hero-strip-group">
+              <span className="hero-strip-label">Built on</span>
+              <span className="hero-strip-value hero-strip-arc">Arc</span>
+            </div>
+            <div className="hero-strip-divider" aria-hidden="true" />
+            <div className="hero-strip-group">
+              <span className="hero-strip-label">Settles in</span>
+              <span className="hero-strip-value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <TokenUSDC size={18} variant="branded" />
+                USDC
+              </span>
+            </div>
+            <div className="hero-strip-divider" aria-hidden="true" />
+            <div className="hero-strip-group">
+              <span className="hero-strip-label">Built with</span>
+              <span className="hero-strip-value">Arc Studio</span>
+            </div>
+            <div className="hero-strip-divider hero-strip-divider--hide-sm" aria-hidden="true" />
+            <div className="hero-strip-group hero-strip-group--network">
+              <span
+                className="hero-strip-dot"
+                style={{ background: isMainnet ? 'var(--primary)' : 'var(--success)' }}
+              />
+              <span className="hero-strip-value" style={{ fontSize: 12 }}>
+                Live on {networkLabel}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
     </div>
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function PoweredByItem({ label }: { label: string }) {
+// ── Floating card (desktop) ───────────────────────────────────────────────────
+function FloatCard({
+  icon,
+  title,
+  line,
+  dotColor,
+  label,
+}: {
+  icon: React.ReactNode
+  title: string
+  line: string
+  dotColor: string
+  label: string
+}) {
   return (
-    <span className="hero-powered-item">
-      {label}
-    </span>
-  )
-}
-
-function HowStep({ index, title, body }: { index: number; title: string; body: string }) {
-  return (
-    <div className="how-step">
-      <span className="how-step-num" aria-hidden="true">{index}</span>
-      <div>
-        <p className="how-step-title">{title}</p>
-        <p className="how-step-body">{body}</p>
+    <div className="float-card">
+      <div className="float-card-header">
+        <span className="float-card-icon">{icon}</span>
+        <span className="float-card-title">{title}</span>
+      </div>
+      <p className="float-card-line">{line}</p>
+      <div className="float-card-status">
+        <span className="float-card-dot" style={{ background: dotColor }} />
+        <span className="float-card-label">{label}</span>
       </div>
     </div>
   )
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-
-const HOW_STEPS = [
-  {
-    title: 'Fund once',
-    body: 'The buyer approves and transfers the full deal amount into escrow. Funds are locked until milestones complete.',
-  },
-  {
-    title: 'Attest and release',
-    body: 'The inspector attests each milestone. After the challenge window, anyone can release — paying all parties in one transaction.',
-  },
-  {
-    title: 'Dispute or refund',
-    body: 'The buyer may dispute within the window; an arbiter resolves. Milestones never attested by the deadline refund to the buyer automatically.',
-  },
-]
+// ── Inline card (phone — stacked below headline) ──────────────────────────────
+function StatusCardInline({
+  icon,
+  title,
+  line,
+  dotColor,
+  label,
+}: {
+  icon: React.ReactNode
+  title: string
+  line: string
+  dotColor: string
+  label: string
+}) {
+  return (
+    <div className="inline-status-card">
+      <span className="float-card-icon">{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <span className="float-card-title">{title}</span>
+        </div>
+        <p className="float-card-line" style={{ margin: 0 }}>{line}</p>
+      </div>
+      <div className="float-card-status" style={{ flexShrink: 0 }}>
+        <span className="float-card-dot" style={{ background: dotColor }} />
+        <span className="float-card-label">{label}</span>
+      </div>
+    </div>
+  )
+}
