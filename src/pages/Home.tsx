@@ -2,10 +2,14 @@
  * Home — hero only.
  * Two-tone headline, frosted status cards, full-width bottom strip.
  */
+import { lazy, Suspense, useState } from 'react'
 import { ArrowRight, Wallet, BadgeCheck, Split } from 'lucide-react'
 import { TokenUSDC } from '@web3icons/react'
 import { useChainId } from 'wagmi'
-import { Globe } from '../components/Globe'
+import { supportsWebGL } from '../components/globe/webgl'
+
+// Lazy-load so three.js stays in its own chunk and never blocks first paint
+const GlobeCanvas = lazy(() => import('../components/globe/GlobeCanvas'))
 
 interface Props {
   onNavigate: (page: 'create' | 'deals') => void
@@ -40,10 +44,16 @@ const S = {
   },
 } as const
 
+// Checked once at module load — avoids a re-render on mount
+const webGLAvailable = typeof window !== 'undefined' && supportsWebGL()
+
 export function Home({ onNavigate }: Props) {
   const chainId = useChainId()
   const networkLabel = chainId === 5042 ? 'Arc Mainnet' : 'Arc Testnet'
   const isMainnet = chainId === 5042
+  // Falls back to the static globe photo if WebGL fails at runtime
+  const [globeFailed, setGlobeFailed] = useState(false)
+  const showCanvas = webGLAvailable && !globeFailed
 
   return (
     <div>
@@ -154,11 +164,24 @@ export function Home({ onNavigate }: Props) {
                 />
               </div>
 
-              <Globe
-                fallbackSrc="/hero/port-dusk-globe.webp"
-                fallbackSrcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
-                className="hero-globe"
-              />
+              {showCanvas ? (
+                <Suspense fallback={null}>
+                  <GlobeCanvas
+                    className="hero-globe"
+                    onFail={() => setGlobeFailed(true)}
+                  />
+                </Suspense>
+              ) : (
+                <img
+                  src="/hero/port-dusk-globe.webp"
+                  srcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
+                  sizes="(max-width: 1280px) 100vw, 50vw"
+                  alt=""
+                  aria-hidden="true"
+                  className="hero-globe"
+                  style={{ objectFit: 'cover', objectPosition: 'center' }}
+                />
+              )}
             </div>
           </div>
         </div>
