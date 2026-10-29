@@ -2,7 +2,7 @@ node_modules/
 contracts/out/
 contracts/cache/
 .arc-studio/
-lib/
+/lib/
 dist/
 .env
 .env.*
