@@ -34,6 +34,15 @@ export default defineConfig({
       'vite-plugin-node-polyfills/shims/process',
     ],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three')) return 'three'
+        },
+      },
+    },
+  },
   server: {
     allowedHosts: true,
     cors: true,

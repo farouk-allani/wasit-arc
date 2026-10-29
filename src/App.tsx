@@ -40,6 +40,7 @@ export default function App() {
       <Header
         currentPage={currentTopLevel}
         onNavigate={navigate}
+        isHero={page.name === 'home'}
       />
 
       <NetworkGuard>

@@ -1,257 +1,176 @@
-import { useAccount } from 'wagmi'
-import { ArrowRight, FileText, Briefcase } from 'lucide-react'
+/**
+ * Home — hero landing page for Wasit.
+ * Full-bleed port-dusk photograph, navy scrims, two-column layout with
+ * a lazy-loaded WebGL globe, and a compact how-it-works strip below.
+ */
+import { Globe } from '../components/Globe'
 
 interface Props {
   onNavigate: (page: 'create' | 'deals') => void
 }
 
+// ── Inline style helpers ──────────────────────────────────────────────────────
+const S = {
+  // Hero wrapper — full-bleed, min 86svh
+  hero: {
+    position: 'relative' as const,
+    minHeight: '86svh',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    overflow: 'hidden',
+  },
+
+  // Photo layer — absolutely fills the hero
+  photo: {
+    position: 'absolute' as const,
+    inset: 0,
+    zIndex: 0,
+  },
+
+  photoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    objectPosition: 'center 60%',
+    display: 'block',
+  },
+
+  // Scrim layers — stacked via z-index
+  scrimBase: {
+    position: 'absolute' as const,
+    inset: 0,
+    zIndex: 1,
+    pointerEvents: 'none' as const,
+  },
+} as const
+
 export function Home({ onNavigate }: Props) {
-  const { address } = useAccount()
-
   return (
-    <main
-      style={{
-        maxWidth: '640px',
-        margin: '0 auto',
-        padding: '64px 20px 48px',
-      }}
-    >
-      {/* Logo mark — large */}
-      <div style={{ marginBottom: '32px' }}>
-        <svg
-          width="52"
-          height="52"
-          viewBox="0 0 64 64"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <defs>
-            <linearGradient id="hm-steel" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#eef2f6" />
-              <stop offset="1" stopColor="#8d98a8" />
-            </linearGradient>
-            <linearGradient id="hm-gold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#f3dcb4" />
-              <stop offset="1" stopColor="#b8895a" />
-            </linearGradient>
-          </defs>
-          <rect width="64" height="64" rx="14" fill="var(--card)" />
-          <g transform="translate(32 32) scale(0.82) translate(-32 -32)">
-            <g fill="none" strokeWidth="7" strokeLinejoin="miter">
-              <path d="M24 11 L9 32 L24 53" stroke="url(#hm-steel)" />
-              <path d="M40 11 L55 32 L40 53" stroke="url(#hm-gold)" />
-            </g>
-            <path d="M32 21 L43 32 L32 43 L21 32Z" fill="#f6efe2" />
-          </g>
-        </svg>
-      </div>
+    <div>
+      {/* ── HERO ────────────────────────────────────────────────────────── */}
+      <section style={S.hero} aria-label="Hero">
+        {/* Background photo */}
+        <div style={S.photo}>
+          <img
+            src="/hero/port-dusk-globe.webp"
+            srcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
+            sizes="100vw"
+            alt=""
+            aria-hidden="true"
+            style={S.photoImg}
+            fetchPriority="high"
+          />
+        </div>
 
-      {/* Pitch */}
-      <h1
-        style={{
-          fontFamily: 'var(--font-ui)',
-          fontSize: 'clamp(26px, 5vw, 36px)',
-          fontWeight: 700,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.2,
-          color: 'var(--foreground)',
-          margin: '0 0 16px',
-          textWrap: 'balance',
-        }}
-      >
-        Milestone escrow for cross-border trade deals.
-      </h1>
+        {/* Scrim — mobile: bottom-up; desktop: left-to-right (via CSS class) */}
+        <div className="hero-scrim-mobile" style={S.scrimBase} />
+        <div className="hero-scrim-desktop" style={S.scrimBase} />
+        {/* Bottom page-blend fade */}
+        <div className="hero-scrim-bottom" style={S.scrimBase} />
 
-      <p
-        style={{
-          fontSize: '16px',
-          lineHeight: 1.7,
-          color: 'var(--muted-foreground)',
-          margin: '0 0 48px',
-          maxWidth: '52ch',
-          textWrap: 'pretty',
-        }}
-      >
-        The buyer funds once; each milestone pays everyone at once, in USDC. No
-        intermediary. No withheld funds. Disputes go to an arbiter you chose at the
-        start.
-      </p>
+        {/* Content grid */}
+        <div className="hero-content" style={{ position: 'relative', zIndex: 2, flex: 1 }}>
+          {/* ── Left column ──────────────────────────────────────────────── */}
+          <div className="hero-left">
+            {/* Eyebrow */}
+            <p className="hero-eyebrow">
+              Milestone escrow for cross-border trade&nbsp;&mdash; Built on Arc
+            </p>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px' }}>
-        <ActionCard
-          icon={<FileText size={18} strokeWidth={1.5} />}
-          title="Create a deal"
-          description="Set payees, milestones, inspector and arbiter."
-          primary
-          onClick={() => onNavigate('create')}
-        />
-        <ActionCard
-          icon={<Briefcase size={18} strokeWidth={1.5} />}
-          title="My deals"
-          description={
-            address ? 'Deals you are part of as buyer, payee, inspector or arbiter.' : 'Connect your wallet to see your deals.'
-          }
-          onClick={() => onNavigate('deals')}
-        />
-      </div>
+            {/* Headline */}
+            <h1 className="hero-headline">
+              Milestone escrow for cross-border trade deals.
+            </h1>
 
-      {/* How it works — quiet secondary section */}
-      <section style={{ marginTop: '72px', borderTop: '1px solid var(--border)', paddingTop: '40px' }}>
-        <h2
-          style={{
-            fontFamily: 'var(--font-ui)',
-            fontSize: '11px',
-            fontWeight: 700,
-            letterSpacing: '0.09em',
-            textTransform: 'uppercase',
-            color: 'var(--muted-foreground)',
-            margin: '0 0 24px',
-          }}
-        >
-          How it works
-        </h2>
+            {/* Subhead */}
+            <p className="hero-subhead">
+              The buyer funds once. Each milestone pays everyone at once, in USDC —
+              seller, forwarder, inspector and fee, in a single transaction. Disputes
+              go to an arbiter chosen at the start.
+            </p>
 
-        <ol
-          style={{
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-          }}
-        >
-          {STEPS.map((step, i) => (
-            <li
-              key={i}
-              style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}
-            >
-              <span
-                style={{
-                  flexShrink: 0,
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--muted-foreground)',
-                  fontFamily: 'var(--font-mono)',
-                  marginTop: '1px',
-                }}
+            {/* Actions */}
+            <div className="hero-actions">
+              <button
+                className="btn-primary"
+                onClick={() => onNavigate('create')}
               >
-                {i + 1}
-              </span>
-              <div>
-                <p
-                  style={{
-                    margin: '0 0 3px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    color: 'var(--foreground)',
-                  }}
-                >
-                  {step.title}
-                </p>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted-foreground)' }}>
-                  {step.body}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+                Create a deal
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => onNavigate('deals')}
+              >
+                My deals
+              </button>
+            </div>
+
+            {/* Powered-by strip */}
+            <div className="hero-powered">
+              <PoweredByItem label="USDC" />
+              <span className="hero-powered-sep" aria-hidden="true">·</span>
+              <PoweredByItem label="Arc" />
+            </div>
+          </div>
+
+          {/* ── Right column — globe ─────────────────────────────────────── */}
+          <div className="hero-right" aria-hidden="true">
+            <Globe
+              fallbackSrc="/hero/port-dusk-globe.webp"
+              fallbackSrcSet="/hero/port-dusk-globe-1280.webp 1280w, /hero/port-dusk-globe.webp 2400w"
+              className="hero-globe"
+            />
+          </div>
+        </div>
       </section>
-    </main>
+
+      {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
+      <section className="how-section" aria-label="How it works">
+        <div className="how-inner">
+          {HOW_STEPS.map((step, i) => (
+            <HowStep key={i} index={i + 1} title={step.title} body={step.body} />
+          ))}
+        </div>
+      </section>
+    </div>
   )
 }
 
-function ActionCard({
-  icon,
-  title,
-  description,
-  primary,
-  onClick,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  primary?: boolean
-  onClick: () => void
-}) {
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function PoweredByItem({ label }: { label: string }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '16px 18px',
-        borderRadius: 'var(--radius)',
-        background: primary ? 'var(--card)' : 'transparent',
-        border: primary ? '1px solid var(--border)' : '1px solid var(--border)',
-        cursor: 'pointer',
-        textAlign: 'left',
-        width: '100%',
-        fontFamily: 'var(--font-ui)',
-        transition: 'background 0.15s, border-color 0.15s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--elevated)'
-        e.currentTarget.style.borderColor = 'rgb(180 191 207 / 0.30)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = primary ? 'var(--card)' : 'transparent'
-        e.currentTarget.style.borderColor = 'var(--border)'
-      }}
-    >
-      <span
-        style={{
-          color: primary ? 'var(--primary)' : 'var(--muted-foreground)',
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </span>
-      <span style={{ flex: 1 }}>
-        <span
-          style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: 'var(--foreground)',
-            marginBottom: '2px',
-          }}
-        >
-          {title}
-        </span>
-        <span style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
-          {description}
-        </span>
-      </span>
-      <ArrowRight size={15} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-    </button>
+    <span className="hero-powered-item">
+      {label}
+    </span>
   )
 }
 
-const STEPS = [
+function HowStep({ index, title, body }: { index: number; title: string; body: string }) {
+  return (
+    <div className="how-step">
+      <span className="how-step-num" aria-hidden="true">{index}</span>
+      <div>
+        <p className="how-step-title">{title}</p>
+        <p className="how-step-body">{body}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const HOW_STEPS = [
   {
-    title: 'Buyer creates and funds a deal',
-    body: 'Set the payee split, milestones, inspector and arbiter. Fund the escrow in one USDC transfer.',
+    title: 'Fund once',
+    body: 'The buyer approves and transfers the full deal amount into escrow. Funds are locked until milestones complete.',
   },
   {
-    title: 'Inspector attests each milestone',
-    body: 'The inspector signs off when work is done. A challenge window lets the buyer dispute.',
+    title: 'Attest and release',
+    body: 'The inspector attests each milestone. After the challenge window, anyone can release — paying all parties in one transaction.',
   },
   {
-    title: 'Payment releases to all parties at once',
-    body: 'One transaction splits the milestone amount among payees, net of the platform fee.',
-  },
-  {
-    title: 'Disputes resolved by the arbiter',
-    body: 'The arbiter splits any disputed milestone. After 14 days without a ruling, anyone can settle it to the attested outcome.',
+    title: 'Dispute or refund',
+    body: 'The buyer may dispute within the window; an arbiter resolves. Milestones never attested by the deadline refund to the buyer automatically.',
   },
 ]

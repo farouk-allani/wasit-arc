@@ -1,5 +1,6 @@
 import { ConnectKitButton } from 'connectkit'
 import { useAccount } from 'wagmi'
+import { useEffect, useState } from 'react'
 import { WasitLogo } from './WasitLogo'
 import { NetworkBadge } from './NetworkBadge'
 import { UsdcBalance } from './UsdcBalance'
@@ -8,28 +9,43 @@ import { SUPPORTED_CHAIN_IDS } from '../lib/wasit-config'
 interface Props {
   currentPage: 'home' | 'create' | 'deals' | 'deal'
   onNavigate: (page: 'home' | 'create' | 'deals') => void
+  /** When true, starts transparent and becomes solid on scroll */
+  isHero?: boolean
 }
 
-export function Header({ currentPage, onNavigate }: Props) {
+export function Header({ currentPage, onNavigate, isHero }: Props) {
   const { address, chainId } = useAccount()
   const isSupported =
     chainId !== undefined &&
     (SUPPORTED_CHAIN_IDS as readonly number[]).includes(chainId)
 
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    if (!isHero) return
+    const onScroll = () => setScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [isHero])
+
+  const transparent = isHero && !scrolled
+
   return (
     <header
+      className={transparent ? 'header-transparent' : 'header-solid'}
       style={{
         position: 'sticky',
         top: 0,
         zIndex: 40,
         height: '64px',
-        background: 'rgba(11 22 36 / 0.92)',
+        background: 'rgba(11, 22, 36, 0.92)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 20px',
         gap: '12px',
+        transition: 'background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease',
       }}
     >
       {/* Logo + wordmark */}

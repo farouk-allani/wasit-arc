@@ -186,3 +186,260 @@ body {
   .milestone-row .ms-amount { grid-column: 1; grid-row: 2; }
   .milestone-row .ms-del    { grid-column: 2; grid-row: 1; justify-self: end; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* HERO                                                                        */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Scrims — mobile: strong bottom-up gradient */
+.hero-scrim-mobile {
+  background: linear-gradient(
+    to top,
+    #0b1624 0%,
+    rgba(11,22,36,0.85) 40%,
+    rgba(11,22,36,0.3)  70%,
+    transparent         100%
+  );
+}
+.hero-scrim-desktop { display: none; }
+
+/* Bottom page-blend so hero bleeds into --background */
+.hero-scrim-bottom {
+  background: linear-gradient(
+    to bottom,
+    transparent 80%,
+    #0b1624     100%
+  );
+}
+
+/* Content grid — single column on mobile */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  padding: 80px 24px 64px;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: flex-end;
+  min-height: 86svh;
+}
+
+/* Left column */
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 520px;
+}
+
+.hero-eyebrow {
+  margin: 0 0 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  opacity: 0.9;
+}
+
+.hero-headline {
+  margin: 0 0 20px;
+  font-family: var(--font-ui);
+  font-size: clamp(28px, 5.5vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--foreground);
+  text-wrap: balance;
+}
+
+.hero-subhead {
+  margin: 0 0 36px;
+  font-size: clamp(14px, 2vw, 16px);
+  line-height: 1.7;
+  color: var(--secondary-foreground);
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+/* Action buttons */
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.btn-primary {
+  padding: 11px 28px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover { background: #c9a470; }
+
+.btn-secondary {
+  padding: 11px 28px;
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.07);
+  color: var(--foreground);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  backdrop-filter: blur(4px);
+  letter-spacing: -0.01em;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+/* Powered-by row */
+.hero-powered {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-powered-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.hero-powered-sep {
+  color: var(--border);
+  font-size: 14px;
+}
+
+/* Right column — globe; hidden on mobile */
+.hero-right {
+  display: none;
+}
+.hero-globe {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+}
+
+/* ── Desktop: two-column layout ─────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .hero-scrim-mobile  { display: none; }
+  .hero-scrim-desktop {
+    display: block;
+    background: linear-gradient(
+      to right,
+      rgba(11,22,36,0.95) 0%,
+      rgba(11,22,36,0.55) 50%,
+      transparent         100%
+    );
+  }
+
+  .hero-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 48px 80px;
+    gap: 0;
+    min-height: 86svh;
+  }
+
+  .hero-left {
+    flex: 1.05;
+    max-width: none;
+    padding-right: 48px;
+  }
+
+  .hero-right {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+  }
+
+  .hero-globe {
+    width: min(100%, 480px);
+    height: min(100%, 480px);
+    min-height: 420px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero-content { padding: 140px 72px 100px; }
+  .hero-globe   { width: 520px; height: 520px; min-height: 480px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* HEADER — transparent over hero, solid once scrolled                         */
+/* ─────────────────────────────────────────────────────────────────────────── */
+.header-transparent {
+  background: transparent !important;
+  border-bottom-color: transparent !important;
+  backdrop-filter: none !important;
+}
+.header-solid {
+  background: rgba(11, 22, 36, 0.92) !important;
+  border-bottom-color: var(--border) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* HOW IT WORKS strip                                                           */
+/* ─────────────────────────────────────────────────────────────────────────── */
+.how-section {
+  background: var(--background);
+  padding: 56px 24px 64px;
+}
+.how-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+@media (min-width: 640px) {
+  .how-inner { grid-template-columns: repeat(3, 1fr); gap: 40px; }
+}
+
+.how-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.how-step-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 1px;
+}
+.how-step-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--foreground);
+}
+.how-step-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted-foreground);
+}
