@@ -346,7 +346,7 @@ export function CreateDeal({ onSuccess }: Props) {
           {currentStep === STEP_PAYEES && (
             <Card
               title="Payees"
-              description="Row 0 is always the seller. Add up to 6 payees total. Shares are in basis points — 10 000 bps = 100%."
+              description="Row 0 is always the seller. Add up to 6 payees total. Shares are in basis points — 10 000 bps = 100%."
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {payees.map((p: PayeeRow, i: number) => (

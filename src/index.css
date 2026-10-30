@@ -155,18 +155,30 @@ body {
 /* ── Payee row: stack on phone ───────────────────────────────────────────────── */
 .payee-row {
   display: grid;
-  grid-template-columns: 1fr 120px 80px 32px;
+  grid-template-columns: 1fr 110px 96px 36px;
   gap: 6px;
   align-items: center;
 }
+
+/* Hide native number spinners on the bps field — they overlap the digits */
+.payee-bps input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.payee-bps input[type="number"]::-webkit-outer-spin-button,
+.payee-bps input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 @media (max-width: 540px) {
   .payee-row {
-    grid-template-columns: 1fr 32px;
+    grid-template-columns: 1fr 36px;
     grid-template-rows: auto auto;
   }
   .payee-row .payee-addr  { grid-column: 1; grid-row: 1; }
   .payee-row .payee-role  { grid-column: 1; grid-row: 2; }
-  .payee-row .payee-bps   { grid-column: 2; grid-row: 2; width: 80px; }
+  .payee-row .payee-bps   { grid-column: 2; grid-row: 2; width: 96px; justify-self: end; }
   .payee-row .payee-del   { grid-column: 2; grid-row: 1; justify-self: end; }
 }
 
