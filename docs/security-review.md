@@ -1,8 +1,9 @@
 # WasitEscrow — Final Security Review
 
 **Contract:** `contracts/WasitEscrow.sol`  
-**Deployment:** `0x0e00f7d98be4c20f38552766fdf1ac4cd704e5be` (Arc Testnet, chain 5042002)  
-**Review date:** 2026-10-29 (updated 2026-10-29 — Medium finding fixed)  
+**Mainnet deployment:** `0x18F7f2Fe911352C27176365A0Bdd19ddFA1B808F` (Arc mainnet, chain 5042)  
+**Testnet deployment:** `0xf8b07422fd2847cf2418392829221481ae916f9d` (Arc Testnet, chain 5042002)  
+**Review date:** 2026-10-29 (updated 2026-10-30 — see the addendum at the end)  
 **Preset:** max  
 **Scope:** full contract including the two features added in turn 5 — arbiter-not-payee rule
 and `releaseStalled()` — which had not previously had a full review pass.
@@ -287,3 +288,31 @@ are needed.
 The two Informational findings (blocklisted-recipient `_owed` credits; shared-custody
 freeze) are architectural properties inherent to single-contract USDC escrow. They are
 documented in the contract and should be disclosed to users in the app UI.
+
+
+---
+
+## Addendum, 2026-10-30 — changes made after this review
+
+This review was written against an earlier build. Three defects were found afterwards by
+driving the real app against the deployed contract, and all were fixed before the mainnet
+deployment. None changed the money logic: the payout split, the state machine and the fee
+arithmetic are unchanged, and all previously passing tests still pass.
+
+1. **`getMilestone` widened (contract change).** It returned only `(amount, state)`, and
+   `_deals` is private, so `attestedAt` and `disputedAt` could not be read on-chain. The app
+   had to reconstruct them from event logs over a block range Arc's RPC rejects, which left
+   the normal release path permanently unavailable in the UI — only the buyer's early
+   approval worked. `getMilestone` now also returns `attestedAt`, `disputedAt` and
+   `buyerApproved`. This is a view-only addition: no storage layout change and no behaviour
+   change. Nine tests were added for it.
+
+2. **Log query ranges capped (app only).** Every `eth_getLogs` call is now batched under
+   Arc's ~5,000-block limit, and the deals scanner starts from the deployment block rather
+   than genesis.
+
+3. **Custom errors added to the app ABI (app only).** The ABI carried none of the contract's
+   33 custom errors, so every revert reached the user as a raw hex selector. All 33 are now
+   present and mapped to plain sentences.
+
+Test count at the mainnet deployment: **152 passing**, including the 4 invariants.
