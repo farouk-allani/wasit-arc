@@ -3,10 +3,11 @@
  * Shows only actions the connected wallet can perform; explains who else
  * can act when the wallet isn't the right role.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { keccak256, toBytes } from 'viem'
 import { ExternalLink, Clock, CheckCircle, Info } from 'lucide-react'
 import type { MilestoneData, DealData } from '../../hooks/useDeal'
+import { parseContractError } from '../../lib/parse-contract-error'
 import {
   useAttest, useApproveMilestone, useRelease, useDispute,
   useResolve, useRefundExpired, useReleaseStalled,
@@ -71,7 +72,7 @@ function StatusMsg({ isPending, isConfirming, isSuccess, isError, error, hash, c
   )
   if (isError && error) return (
     <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: '8px 0 0', maxWidth: '340px' }}>
-      {(error as { shortMessage?: string }).shortMessage ?? error.message}
+      {parseContractError(error)}
     </p>
   )
   return null
@@ -193,14 +194,18 @@ export function MilestoneActions({
   const refundExpired = useRefundExpired(chainId)
   const releaseStalled = useReleaseStalled(chainId)
 
-  // Trigger parent refresh after any success
-  useEffect(() => { if (attest.isSuccess) onSuccess() }, [attest.isSuccess, onSuccess])
-  useEffect(() => { if (approveMilestone.isSuccess) onSuccess() }, [approveMilestone.isSuccess, onSuccess])
-  useEffect(() => { if (release.isSuccess) onSuccess() }, [release.isSuccess, onSuccess])
-  useEffect(() => { if (dispute.isSuccess) onSuccess() }, [dispute.isSuccess, onSuccess])
-  useEffect(() => { if (resolve.isSuccess) onSuccess() }, [resolve.isSuccess, onSuccess])
-  useEffect(() => { if (refundExpired.isSuccess) onSuccess() }, [refundExpired.isSuccess, onSuccess])
-  useEffect(() => { if (releaseStalled.isSuccess) onSuccess() }, [releaseStalled.isSuccess, onSuccess])
+  // Keep the latest callback in a ref so effects are never gated on its identity.
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => { onSuccessRef.current = onSuccess })
+
+  // Each effect is keyed on the confirmed tx hash — fires exactly once per tx.
+  useEffect(() => { if (attest.isSuccess && attest.txHash)          onSuccessRef.current() }, [attest.isSuccess, attest.txHash])
+  useEffect(() => { if (approveMilestone.isSuccess && approveMilestone.txHash) onSuccessRef.current() }, [approveMilestone.isSuccess, approveMilestone.txHash])
+  useEffect(() => { if (release.isSuccess && release.txHash)        onSuccessRef.current() }, [release.isSuccess, release.txHash])
+  useEffect(() => { if (dispute.isSuccess && dispute.txHash)        onSuccessRef.current() }, [dispute.isSuccess, dispute.txHash])
+  useEffect(() => { if (resolve.isSuccess && resolve.txHash)        onSuccessRef.current() }, [resolve.isSuccess, resolve.txHash])
+  useEffect(() => { if (refundExpired.isSuccess && refundExpired.txHash) onSuccessRef.current() }, [refundExpired.isSuccess, refundExpired.txHash])
+  useEffect(() => { if (releaseStalled.isSuccess && releaseStalled.txHash) onSuccessRef.current() }, [releaseStalled.isSuccess, releaseStalled.txHash])
 
   const nowTs = useNow()
   const addr = connectedAddress?.toLowerCase()

@@ -67,7 +67,8 @@ export function Home({ onNavigate }: Props) {
             alt=""
             aria-hidden="true"
             style={S.photoImg}
-            fetchPriority="high"
+            // @ts-expect-error lowercase fetchpriority is the correct DOM attr in React 18; see vite-env.d.ts
+            fetchpriority="high"
           />
         </div>
 

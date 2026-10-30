@@ -291,7 +291,7 @@ function OpenById({ onOpen }: { onOpen: (id: string) => void }) {
 export function MyDeals({ onOpenDeal, onCreateDeal }: Props) {
   const { address } = useAccount()
   const chainId = useChainId()
-  const { deals, isScanning, scannedBlock, headBlock, isError, errorMessage, rescan } = useMyDeals(chainId, address)
+  const { deals, isScanning, scannedBlock, headBlock, isError, errorMessage, rescan, isRecentOnly } = useMyDeals(chainId, address)
 
   // Disconnected
   if (!address) {
@@ -350,6 +350,15 @@ export function MyDeals({ onOpenDeal, onCreateDeal }: Props) {
 
   return (
     <PageShell>
+      {/* Recent-only notice when deploy block is unknown for this chain */}
+      {isRecentOnly && !isScanning && (
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'rgb(231 176 87 / 0.06)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--warning)', fontFamily: 'var(--font-mono)' }}>
+            Deploy block unknown for this chain — showing recent deals only.
+          </span>
+        </div>
+      )}
+
       {/* Scan progress */}
       {isScanning && (
         <div style={{ padding: '16px 16px 0' }}>

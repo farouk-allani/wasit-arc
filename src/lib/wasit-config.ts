@@ -21,7 +21,9 @@ export type SupportedChainId = typeof SUPPORTED_CHAIN_IDS[number]
 
 // ── Contract addresses ────────────────────────────────────────────────────────
 const CONTRACT_ADDRESSES: Record<number, `0x${string}` | null> = {
-  [ARC_TESTNET_CHAIN_ID]: '0xdb62589187fee9de76ae69e92b804485803bbb07',
+  // WasitEscrow v3 — getMilestone returns (amount, state, attestedAt, disputedAt, buyerApproved)
+  // Arc Testnet: deployed 2026-10-30T13:10:25Z, block 69844454, tx 0x1ea759…
+  [ARC_TESTNET_CHAIN_ID]: '0xf8b07422fd2847cf2418392829221481ae916f9d',
   [ARC_MAINNET_CHAIN_ID]: null, // fill in when deployed
 }
 

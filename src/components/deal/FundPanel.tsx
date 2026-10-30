@@ -2,11 +2,12 @@
  * FundPanel — two-step USDC approve + fund for the buyer.
  * Checks existing allowance; skips approve when already sufficient.
  */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { CheckCircle, ExternalLink, Info } from 'lucide-react'
 import { useFund } from '../../hooks/useDealActions'
 import { fmtUsdc } from '../../lib/split'
 import { buildTxExplorerUrl } from '../../onchain-facts'
+import { parseContractError } from '../../lib/parse-contract-error'
 
 interface Props {
   dealId: bigint
@@ -23,14 +24,20 @@ export function FundPanel({ dealId, total, buyerAddress, chainId, onSuccess }: P
     fund, fundHash, fundPending, fundConfirming, fundSuccess, fundError,
   } = useFund(chainId, buyerAddress, total)
 
-  // After approve confirms, re-check allowance and move on
-  useEffect(() => {
-    if (approveSuccess) void refetchAllowance()
-  }, [approveSuccess, refetchAllowance])
+  // Keep the latest callback in a ref so effects never need it as a dep.
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => { onSuccessRef.current = onSuccess })
 
+  // After approve confirms, re-check allowance and move on.
+  // Keyed on the hash so this fires exactly once per confirmed tx.
   useEffect(() => {
-    if (fundSuccess) onSuccess()
-  }, [fundSuccess, onSuccess])
+    if (approveSuccess && approveHash) void refetchAllowance()
+  }, [approveSuccess, approveHash, refetchAllowance])
+
+  // Fire onSuccess exactly once per confirmed fund tx.
+  useEffect(() => {
+    if (fundSuccess && fundHash) onSuccessRef.current()
+  }, [fundSuccess, fundHash])
 
   const step = needsApprove ? 1 : 2
 
@@ -157,7 +164,7 @@ function TxStatus({ hash, pending, confirming, success, error, chainId }: {
   )
   if (error) return (
     <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: '8px 0 0', maxWidth: '360px' }}>
-      {(error as { shortMessage?: string }).shortMessage ?? error.message}
+      {parseContractError(error)}
     </p>
   )
   return null

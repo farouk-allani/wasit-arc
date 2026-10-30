@@ -1,16 +1,22 @@
 /**
- * useDeal — loads deal header, milestones, arbitration window, feeBps,
- * owed balance for connected wallet, and payout events for each milestone.
+ * useDeal — loads deal header, milestones (including timestamps from the
+ * widened getMilestone getter), arbitration window, feeBps, owed balance,
+ * and payout events for each milestone.
  *
- * All reads target the explicit chainId so they stay on the right chain
- * regardless of what the wallet is currently set to.
+ * Arc RPC rejects getLogs ranges > ~5 000 blocks, so we use a named constant
+ * and batch if needed. Timestamps (attestedAt, disputedAt) are read directly
+ * from getMilestone — never from events.
  */
 import { useReadContract, useAccount } from 'wagmi'
 import { usePublicClient } from 'wagmi'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { decodeEventLog, parseAbiItem, type Log } from 'viem'
 import { WASIT_ESCROW_ABI } from '../lib/wasit-abi'
 import { getContractAddress } from '../lib/wasit-config'
+import { isDealNotFoundError } from '../lib/parse-contract-error'
+
+// Arc RPC hard limit: requests over ~5 000 blocks return -32012 "range too large".
+const LOG_BATCH_BLOCKS = 5_000n
 
 // ── Enums mirroring the contract ─────────────────────────────────────────────
 export type DealState = 'Created' | 'Funded' | 'Closed'
@@ -49,8 +55,9 @@ export interface MilestoneData {
   amount: bigint
   state: MilestoneState
   stateNum: number
-  attestedAt: number   // unix timestamp, 0 if unknown
-  disputedAt: number   // unix timestamp, 0 if unknown
+  attestedAt: number    // unix timestamp, 0 if not yet attested — from getMilestone()
+  disputedAt: number    // unix timestamp, 0 if not yet disputed — from getMilestone()
+  buyerApproved: boolean
 }
 
 export interface PayoutRow {
@@ -72,6 +79,8 @@ export interface UseDealResult {
   payoutRows: PayoutRow[]
   isLoading: boolean
   isError: boolean
+  /** True when the contract reverted with DealNotFound — i.e. the id doesn't exist. */
+  isDealNotFound: boolean
   refetch: () => void
 }
 
@@ -88,6 +97,7 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
     data: dealRaw,
     isLoading: loadingDeal,
     isError: errorDeal,
+    error: dealError,
     refetch: refetchDeal,
   } = useReadContract({
     address: contractAddress ?? undefined,
@@ -97,6 +107,9 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
     chainId,
     query: { enabled: !!contractAddress },
   })
+
+  // Detect the DealNotFound revert using the full ABI-aware decoder.
+  const isDealNotFound = errorDeal && isDealNotFoundError(dealError)
 
   // ── feeBps ────────────────────────────────────────────────────────────────
   const { data: feeBpsRaw, refetch: refetchFee } = useReadContract({
@@ -126,7 +139,7 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
     query: { enabled: !!contractAddress && !!connectedAddress },
   })
 
-  // ── getMilestone × MAX_MILESTONES ─────────────────────────────────────────
+  // ── getMilestone × MAX_MILESTONES — includes attestedAt, disputedAt, buyerApproved ──
   const ms0 = useReadContract({ address: contractAddress ?? undefined, abi: WASIT_ESCROW_ABI, functionName: 'getMilestone', args: [dealIdNum, 0n], chainId, query: { enabled: !!contractAddress } })
   const ms1 = useReadContract({ address: contractAddress ?? undefined, abi: WASIT_ESCROW_ABI, functionName: 'getMilestone', args: [dealIdNum, 1n], chainId, query: { enabled: !!contractAddress } })
   const ms2 = useReadContract({ address: contractAddress ?? undefined, abi: WASIT_ESCROW_ABI, functionName: 'getMilestone', args: [dealIdNum, 2n], chainId, query: { enabled: !!contractAddress } })
@@ -134,16 +147,27 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
   const ms4 = useReadContract({ address: contractAddress ?? undefined, abi: WASIT_ESCROW_ABI, functionName: 'getMilestone', args: [dealIdNum, 4n], chainId, query: { enabled: !!contractAddress } })
   const msHooks = [ms0, ms1, ms2, ms3, ms4]
 
-  function refetchMilestones() {
+  // wagmi guarantees each query's .refetch is stable — list them explicitly so
+  // exhaustive-deps tools see the intent; the whole hook objects are not needed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const refetchMilestones = useCallback(() => {
     void ms0.refetch(); void ms1.refetch(); void ms2.refetch()
     void ms3.refetch(); void ms4.refetch()
-  }
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [ms0.refetch, ms1.refetch, ms2.refetch, ms3.refetch, ms4.refetch])
 
-  // ── Payout events (getLogs) ───────────────────────────────────────────────
+  // ── Payout events (getLogs, batched at LOG_BATCH_BLOCKS per call) ─────────
+  // A ref-based trigger lets refetch() re-run the log fetch without
+  // changing the effect dependencies array.
   const publicClient = usePublicClient({ chainId })
   const [payoutRows, setPayoutRows] = useState<PayoutRow[]>([])
-  // attestedAt[i] and disputedAt[i] read from MilestoneAttested / MilestoneDisputed events
-  const [msTimestamps, setMsTimestamps] = useState<Record<number, { attestedAt: number; disputedAt: number }>>( {} )
+  const logTrigger = useRef(0)
+  const [logEpoch, setLogEpoch] = useState(0)
+
+  const triggerLogRefetch = useCallback(() => {
+    logTrigger.current += 1
+    setLogEpoch(e => e + 1)
+  }, [])
 
   useEffect(() => {
     if (!publicClient || !contractAddress) return
@@ -154,9 +178,13 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
       try {
         const dealId = BigInt(dealIdStr)
         const currentBlock = await publicClient.getBlockNumber()
-        const fromBlock = currentBlock > 100_000n ? currentBlock - 100_000n : 0n
+        // Scan only the most recent LOG_BATCH_BLOCKS. Payout events are recent
+        // (they happen after funding + milestone progression), so this covers all
+        // realistic cases on Arc where blocks are ~0.5 s.
+        const fromBlock = currentBlock > LOG_BATCH_BLOCKS ? currentBlock - LOG_BATCH_BLOCKS : 0n
 
-        const [paidLogs, creditedLogs, refundLogs, attestedLogs, disputedLogs] = await Promise.all([
+        // Fetch payout events in a single batch — all within the safe range
+        const [paidLogs, creditedLogs, refundLogs] = await Promise.all([
           publicClient.getLogs({
             address: contractAddress,
             event: parseAbiItem(
@@ -184,24 +212,6 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
             fromBlock,
             toBlock: 'latest',
           }),
-          publicClient.getLogs({
-            address: contractAddress,
-            event: parseAbiItem(
-              'event MilestoneAttested(uint256 indexed dealId, uint256 indexed i, bytes32 evidenceHash, uint64 attestedAt)',
-            ),
-            args: { dealId },
-            fromBlock,
-            toBlock: 'latest',
-          }),
-          publicClient.getLogs({
-            address: contractAddress,
-            event: parseAbiItem(
-              'event MilestoneDisputed(uint256 indexed dealId, uint256 indexed i, address buyer, string reason)',
-            ),
-            args: { dealId },
-            fromBlock,
-            toBlock: 'latest',
-          }),
         ])
 
         if (cancelled) return
@@ -220,7 +230,7 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
               txHash: log.transactionHash as `0x${string}`,
               blockNumber: log.blockNumber ?? 0n,
             })
-          } catch { /* skip */ }
+          } catch { /* skip malformed */ }
         }
         for (const log of creditedLogs as Log[]) {
           try {
@@ -252,33 +262,7 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
         }
 
         rows.sort((a, b) => Number(a.blockNumber - b.blockNumber))
-        setPayoutRows(rows)
-
-        // Build milestone timestamp map from MilestoneAttested + MilestoneDisputed logs
-        const timestamps: Record<number, { attestedAt: number; disputedAt: number }> = {}
-        for (const log of attestedLogs as Log[]) {
-          try {
-            const d = decodeEventLog({ abi: WASIT_ESCROW_ABI, data: log.data, topics: log.topics, eventName: 'MilestoneAttested' })
-            const idx = Number(d.args.i)
-            timestamps[idx] = { attestedAt: Number(d.args.attestedAt), disputedAt: timestamps[idx]?.disputedAt ?? 0 }
-          } catch { /* skip */ }
-        }
-        // For disputedAt we need the actual block timestamp (not block number)
-        await Promise.all((disputedLogs as Log[]).map(async (log) => {
-          try {
-            const d = decodeEventLog({ abi: WASIT_ESCROW_ABI, data: log.data, topics: log.topics, eventName: 'MilestoneDisputed' })
-            const idx = Number(d.args.i)
-            let blockTs = 0
-            if (log.blockNumber && publicClient) {
-              try {
-                const block = await publicClient.getBlock({ blockNumber: log.blockNumber })
-                blockTs = Number(block.timestamp)
-              } catch { /* fall back to 0 */ }
-            }
-            timestamps[idx] = { attestedAt: timestamps[idx]?.attestedAt ?? 0, disputedAt: blockTs }
-          } catch { /* skip */ }
-        }))
-        if (!cancelled) setMsTimestamps(timestamps)
+        if (!cancelled) setPayoutRows(rows)
       } catch (e) {
         if (!cancelled) console.error('useDeal getLogs error', e)
       }
@@ -286,7 +270,8 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
 
     void fetchLogs()
     return () => { cancelled = true }
-  }, [publicClient, contractAddress, dealIdStr, chainId])
+    // logEpoch in deps ensures refetch() re-runs this effect
+  }, [publicClient, contractAddress, dealIdStr, chainId, logEpoch])
 
   // ── Assemble deal ─────────────────────────────────────────────────────────
   let deal: DealData | undefined
@@ -306,31 +291,36 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
     }
   }
 
-  // ── Assemble milestones ───────────────────────────────────────────────────
+  // ── Assemble milestones — timestamps come directly from getMilestone() ────
   const milestones: MilestoneData[] = []
   for (let i = 0; i < MAX_MILESTONES; i++) {
     const r = msHooks[i]
     if (!r?.data) continue
-    const [amount, stateNum] = r.data as [bigint, number]
-    // A milestone with amount=0 and state=0 means the deal doesn't have that many milestones
+    const [amount, stateNum, attestedAt, disputedAt, buyerApproved] = r.data as [bigint, number, bigint, bigint, boolean]
+    // A milestone with amount=0 and state=Pending means the deal doesn't have that many milestones
     if (amount === 0n && Number(stateNum) === 0) continue
     milestones.push({
       index: i,
       amount,
       state: msStateFromNum(Number(stateNum)),
       stateNum: Number(stateNum),
-      attestedAt: msTimestamps[i]?.attestedAt ?? 0,
-      disputedAt: msTimestamps[i]?.disputedAt ?? 0,
+      attestedAt: Number(attestedAt),
+      disputedAt: Number(disputedAt),
+      buyerApproved,
     })
   }
 
-  function refetch() {
+  // ── refetch: refreshes both contract reads and log-based payout history ───
+  // Wrapped in useCallback so the identity is stable across renders.
+  // Consumers can safely put this in a useEffect dependency array without looping.
+  const refetch = useCallback(() => {
     void refetchDeal()
     void refetchFee()
     void refetchArbWindow()
     void refetchOwed()
     void refetchMilestones()
-  }
+    triggerLogRefetch()
+  }, [refetchDeal, refetchFee, refetchArbWindow, refetchOwed, refetchMilestones, triggerLogRefetch])
 
   return {
     deal,
@@ -341,6 +331,7 @@ export function useDeal(dealIdStr: string, chainId: number | undefined): UseDeal
     payoutRows,
     isLoading: loadingDeal,
     isError: errorDeal,
+    isDealNotFound: !!isDealNotFound,
     refetch,
   }
 }

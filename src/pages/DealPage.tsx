@@ -133,7 +133,7 @@ export function DealPage({ dealId, onBack }: Props) {
   const {
     deal, milestones, feeBps, arbitrationWindow,
     owedBalance, payoutRows,
-    isLoading, isError, refetch,
+    isLoading, isError, isDealNotFound, refetch,
   } = useDeal(dealId, chainId)
 
   const { payees, milestoneAmounts, loaded: payeesLoaded } = useDealCreatedEvent(dealId, chainId)
@@ -171,17 +171,38 @@ export function DealPage({ dealId, onBack }: Props) {
     )
   }
 
-  // ── Error ─────────────────────────────────────────────────────────────────
+  // ── Not found (contract revert: DealNotFound) ─────────────────────────────
+  if (isDealNotFound) {
+    return (
+      <PageWrapper dealId={dealId} onBack={onBack}>
+        <EmptyState
+          icon={<AlertTriangle size={28} strokeWidth={1.5} style={{ color: 'var(--muted-foreground)' }} />}
+          title={`Deal #${dealId} not found`}
+          body="No deal exists at this number. Check the deal id and the selected network."
+        />
+        <button
+          onClick={onBack}
+          style={{
+            marginTop: '16px', padding: '8px 18px', borderRadius: 'var(--radius)',
+            border: '1px solid var(--border)', background: 'transparent',
+            color: 'var(--foreground)', fontSize: '13px', fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'var(--font-ui)',
+          }}
+        >
+          Back to My deals
+        </button>
+      </PageWrapper>
+    )
+  }
+
+  // ── RPC / network error ───────────────────────────────────────────────────
   if (isError || !deal) {
     return (
       <PageWrapper dealId={dealId} onBack={onBack}>
         <EmptyState
           icon={<AlertTriangle size={28} strokeWidth={1.5} style={{ color: 'var(--destructive)' }} />}
-          title={isError ? 'Failed to load deal' : `Deal #${dealId} not found`}
-          body={isError
-            ? 'Could not fetch deal data. Check your network connection and try again.'
-            : 'No deal exists at this id. Check the id and the selected network.'
-          }
+          title="Failed to load deal"
+          body="Could not fetch deal data. Check your network connection and try again."
         />
         <button
           onClick={refetch}

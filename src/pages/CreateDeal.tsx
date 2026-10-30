@@ -8,6 +8,7 @@ import { computeSplit, fmtUsdc, parseUsdcInput } from '../lib/split'
 import { shortAddress } from '../lib/format'
 import { buildTxExplorerUrl } from '@/onchain-facts'
 import { PageHeader, Card, Button, Field, Input } from '../components/ui'
+import { parseContractError } from '../lib/parse-contract-error'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -61,13 +62,13 @@ export function CreateDeal({ onSuccess }: Props) {
   )
 
   // Running bps total
-  const bpsSum    = payees.reduce((s, p) => s + (parseInt(p.bps, 10) || 0), 0)
+  const bpsSum    = payees.reduce((s: number, p: PayeeRow) => s + (parseInt(p.bps, 10) || 0), 0)
   const bpsTarget = 10000 - effectiveFeeBps
   const bpsDelta  = bpsTarget - bpsSum
 
   // ── Split preview ───────────────────────────────────────────────────────────
   const splitPreview = useMemo(() => {
-    const validPayees = payees.map((p, i) => ({
+    const validPayees = payees.map((p: PayeeRow, i: number) => ({
       addr: p.addr,
       role: p.role || (i === 0 ? 'Seller' : `Payee ${i + 1}`),
       bps:  parseInt(p.bps, 10) || 0,
@@ -77,25 +78,25 @@ export function CreateDeal({ onSuccess }: Props) {
 
   // ── Payee handlers ──────────────────────────────────────────────────────────
   const updatePayee = useCallback((i: number, field: keyof PayeeRow, value: string) => {
-    setPayees((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)))
+    setPayees((prev: PayeeRow[]) => prev.map((p: PayeeRow, idx: number) => (idx === i ? { ...p, [field]: value } : p)))
   }, [])
   const addPayee = useCallback(() => {
-    if (payees.length < 6) setPayees((prev) => [...prev, { addr: '', role: '', bps: '' }])
+    if (payees.length < 6) setPayees((prev: PayeeRow[]) => [...prev, { addr: '', role: '', bps: '' }])
   }, [payees.length])
   const removePayee = useCallback((i: number) => {
-    if (i > 0) setPayees((prev) => prev.filter((_, idx) => idx !== i))
+    if (i > 0) setPayees((prev: PayeeRow[]) => prev.filter((_: PayeeRow, idx: number) => idx !== i))
   }, [])
 
   // ── Milestone handlers ──────────────────────────────────────────────────────
   const updateMilestone = useCallback((i: number, field: keyof MilestoneRow, value: string) => {
-    setMilestones((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)))
+    setMilestones((prev: MilestoneRow[]) => prev.map((m: MilestoneRow, idx: number) => (idx === i ? { ...m, [field]: value } : m)))
   }, [])
   const addMilestone = useCallback(() => {
     if (milestones.length < 5)
-      setMilestones((prev) => [...prev, { label: `Milestone ${prev.length + 1}`, amount: '' }])
+      setMilestones((prev: MilestoneRow[]) => [...prev, { label: `Milestone ${prev.length + 1}`, amount: '' }])
   }, [milestones.length])
   const removeMilestone = useCallback((i: number) => {
-    if (milestones.length > 1) setMilestones((prev) => prev.filter((_, idx) => idx !== i))
+    if (milestones.length > 1) setMilestones((prev: MilestoneRow[]) => prev.filter((_: MilestoneRow, idx: number) => idx !== i))
   }, [milestones.length])
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export function CreateDeal({ onSuccess }: Props) {
             description="Row 0 is always the seller. Add up to 6 payees total. Shares are in basis points (bps) — 10 000 bps = 100 %."
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {payees.map((p, i) => (
+              {payees.map((p: PayeeRow, i: number) => (
                 <PayeeRowInput
                   key={i}
                   index={i}
@@ -212,7 +213,7 @@ export function CreateDeal({ onSuccess }: Props) {
             description="Each milestone releases a fixed USDC amount when attested and approved. Up to 5 milestones."
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {milestones.map((m, i) => (
+              {milestones.map((m: MilestoneRow, i: number) => (
                 <MilestoneRowInput
                   key={i}
                   index={i}
@@ -408,9 +409,11 @@ function DealSheet({
 }: DealSheetProps) {
   const DASH = <span style={{ color: 'var(--border)' }}>—</span>
 
-  const totalUsdc = milestones.reduce((s, m) => {
-    const v = parseUsdcInput(m.amount)
-    return v === null ? s : s + v
+  const totalUsdc = milestones.reduce((s: bigint, m: MilestoneRow) => {
+    try {
+      const v = parseUsdcInput(m.amount)
+      return v !== null ? s + v : s
+    } catch { return s }
   }, 0n)
 
   const deadlineLabel = deadlineDate
@@ -712,21 +715,7 @@ function presetButtonStyle(active: boolean): React.CSSProperties {
   }
 }
 
-function parseContractError(error: unknown): string {
-  const msg = (error as Error)?.message?.toLowerCase() ?? ''
-  if (msg.includes('user rejected') || msg.includes('user denied')) return 'Transaction cancelled.'
-  if (msg.includes('invalidbpssum')) return 'Bps sum does not equal 10 000 − feeBps.'
-  if (msg.includes('duplicatepayee')) return 'Duplicate payee address.'
-  if (msg.includes('invalidarbiter') || msg.includes('arbiterisPayee')) return 'Arbiter is a payee address.'
-  if (msg.includes('invalidinspector')) return 'Inspector must not be the seller.'
-  if (msg.includes('invaliddeadline')) return 'Deadline is too soon.'
-  if (msg.includes('insufficient')) return 'Insufficient USDC balance.'
-  if (msg.includes('reverted')) {
-    const m = msg.match(/reason="([^"]+)"/)
-    return m ? `Transaction failed: ${m[1]}` : 'Transaction reverted.'
-  }
-  return 'Transaction failed. Check the form and try again.'
-}
+// parseContractError is imported from src/lib/parse-contract-error.ts
 
 // Needed for parseUsdcInput re-export
 export { parseUsdcInput }

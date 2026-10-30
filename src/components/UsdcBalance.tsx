@@ -1,7 +1,7 @@
-import { useAccount, useReadContract } from 'wagmi'
+import { useAccount, useReadContract, useBlockNumber } from 'wagmi'
 import { erc20Abi } from 'viem'
-import { USDC_ADDRESS } from '../lib/wasit-config'
-import { SUPPORTED_CHAIN_IDS } from '../lib/wasit-config'
+import { useEffect } from 'react'
+import { USDC_ADDRESS, SUPPORTED_CHAIN_IDS } from '../lib/wasit-config'
 
 /**
  * Reads the USDC ERC-20 balance for the connected wallet.
@@ -13,6 +13,9 @@ export function UsdcBalance() {
 
   const isSupported = chainId !== undefined && (SUPPORTED_CHAIN_IDS as readonly number[]).includes(chainId)
 
+  // Watch new blocks so the balance refreshes automatically after each block
+  const { data: blockNumber } = useBlockNumber({ watch: true, chainId })
+
   // Read decimals from the contract (never hardcode)
   const { data: decimals } = useReadContract({
     address: USDC_ADDRESS,
@@ -22,7 +25,7 @@ export function UsdcBalance() {
     query: { enabled: !!address && isSupported },
   })
 
-  const { data: raw, isLoading } = useReadContract({
+  const { data: raw, isLoading, refetch: refetchBalance } = useReadContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: 'balanceOf',
@@ -30,6 +33,13 @@ export function UsdcBalance() {
     chainId: chainId,
     query: { enabled: !!address && isSupported && decimals !== undefined },
   })
+
+  // Refetch whenever a new block arrives
+  useEffect(() => {
+    if (blockNumber !== undefined && isSupported) {
+      void refetchBalance()
+    }
+  }, [blockNumber, isSupported, refetchBalance])
 
   if (!address || !isSupported) return null
 

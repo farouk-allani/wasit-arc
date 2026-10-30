@@ -16,16 +16,27 @@ import { WASIT_ESCROW_ABI } from '../lib/wasit-abi'
 import { getContractAddress } from '../lib/wasit-config'
 import { dealStateFromNum, msStateFromNum, type DealState, type MilestoneState } from './useDeal'
 
-// ── Contract deploy block on Arc Testnet (2026-10-28 ~10:11 UTC) ─────────────
-// Arc blocks are ~1s, deployed at 2026-10-28T10:11:47Z.
-// We use a conservative estimate; any DealCreated before this cannot exist.
-// For mainnet: set to the mainnet deploy block when known.
+// ── Contract deploy blocks ─────────────────────────────────────────────────────
+// Arc RPC rejects getLogs ranges > ~5 000 blocks (-32012 "range too large").
+// Set each entry to the deploy block of the WasitEscrow contract on that chain
+// so the scanner starts from the first possible DealCreated, not from genesis.
+//
+// If a chain entry is missing or 0n, the scanner falls back to a recent window
+// (RECENT_FALLBACK_BLOCKS) and shows a "recent deals only" notice in the UI.
 const DEPLOY_BLOCKS: Record<number, bigint> = {
-  5042002: 0n,   // Arc Testnet — will resolve dynamically; 0n = scan from genesis (safe for new contract)
-  5042:    0n,   // Arc Mainnet — not deployed yet
+  // Arc Testnet: WasitEscrow v3 (0xf8b07…) deployed in block 69844454 (2026-10-30T13:10:25Z)
+  // Update this constant after every testnet redeployment.
+  5042002: 69844454n,
+  // Arc Mainnet: fill in after mainnet deploy.
+  5042: 0n,
 }
 
-const BATCH_SIZE = 2000n  // blocks per getLogs call
+// Arc RPC hard cap: reject ranges > ~5 000 blocks.
+const BATCH_SIZE = 4_900n  // stay comfortably under the limit
+
+// Fallback when deploy block is unknown — scan only a recent window.
+// At ~0.5s/block this is ~41 min of history; enough for a demo / recent deals.
+const RECENT_FALLBACK_BLOCKS = 5_000n
 
 // ── Module-level cache: (cacheKey) -> CachedResult ────────────────────────────
 interface DealSummary {
@@ -67,6 +78,8 @@ export interface UseMyDealsResult {
   isError: boolean
   errorMessage: string
   rescan: () => void
+  /** True when the deploy block for this chain is unknown — list shows recent deals only. */
+  isRecentOnly: boolean
 }
 
 // ── Enrich a raw DealCreated summary with live chain state ────────────────────
@@ -108,7 +121,7 @@ async function enrichDeal(
         functionName: 'getMilestone',
         args: [dealIdNum, BigInt(i)],
       })
-      const [amount, msStateNum] = msRaw as [bigint, number]
+      const [amount, msStateNum] = msRaw as [bigint, number, bigint, bigint, boolean]
       if (amount === 0n && Number(msStateNum) === 0) break
       milestoneStates.push(msStateFromNum(Number(msStateNum)))
       milestoneCount++
@@ -186,6 +199,7 @@ export function useMyDeals(chainId: number | undefined, connectedAddress: `0x${s
   const [headBlock, setHeadBlock] = useState(0n)
   const [isError, setIsError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [isRecentOnly, setIsRecentOnly] = useState(false)
   const [scanKey, setScanKey] = useState(0)  // increment to trigger rescan
 
   const abortRef = useRef<boolean>(false)
@@ -215,7 +229,13 @@ export function useMyDeals(chainId: number | undefined, connectedAddress: `0x${s
         const currentHead = await publicClient.getBlockNumber()
         setHeadBlock(currentHead)
 
-        const deployBlock = DEPLOY_BLOCKS[chainId!] ?? 0n
+        const knownDeploy = DEPLOY_BLOCKS[chainId!] ?? 0n
+        // If deploy block is unknown (0n), fall back to a recent window only.
+        const usingFallback = knownDeploy === 0n
+        setIsRecentOnly(usingFallback)
+        const deployBlock = usingFallback
+          ? (currentHead > RECENT_FALLBACK_BLOCKS ? currentHead - RECENT_FALLBACK_BLOCKS : 0n)
+          : knownDeploy
         const startBlock = cached ? cached.lastScannedBlock + 1n : deployBlock
 
         // If cache is fresh (already at head), just use it
@@ -341,7 +361,7 @@ export function useMyDeals(chainId: number | undefined, connectedAddress: `0x${s
     return () => { abortRef.current = true }
   }, [publicClient, contractAddress, connectedAddress, chainId, scanKey])
 
-  return { deals, isScanning, scannedBlock, headBlock, isError, errorMessage, rescan }
+  return { deals, isScanning, scannedBlock, headBlock, isError, errorMessage, rescan, isRecentOnly }
 }
 
 // Re-export DealSummary for consumers
