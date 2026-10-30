@@ -426,6 +426,104 @@ body {
   }
 }
 
+/* ── Wizard step rail ─────────────────────────────────────────────────────── */
+.wizard-rail {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 20px 0 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* prevent horizontal overflow at 390px */
+  max-width: 100%;
+}
+.wizard-rail::-webkit-scrollbar { display: none; }
+
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  cursor: default;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  /* connector line between steps */
+  position: relative;
+}
+/* connector after each step except last */
+.wizard-step:not(:last-child)::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 6px;
+}
+.wizard-step--active {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.wizard-step--active::after {
+  background: var(--border);
+}
+.wizard-step--completed {
+  color: var(--success);
+}
+.wizard-step--completed::after {
+  background: var(--success);
+  opacity: 0.4;
+}
+.wizard-step--clickable {
+  cursor: pointer;
+}
+.wizard-step--clickable:hover {
+  color: var(--primary);
+}
+.wizard-step--clickable:hover .wizard-step-dot {
+  border-color: var(--primary);
+}
+
+.wizard-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.wizard-step--active .wizard-step-dot {
+  border-color: var(--primary);
+  background: rgb(221 184 134 / 0.10);
+  color: var(--primary);
+}
+.wizard-step--completed .wizard-step-dot {
+  border-color: var(--success);
+  background: rgb(72 199 142 / 0.08);
+  color: var(--success);
+}
+
+/* On narrow screens (< 540px) hide step labels, keep dots + connectors */
+@media (max-width: 539px) {
+  .wizard-step-label { display: none; }
+  .wizard-step { gap: 0; }
+  .wizard-step:not(:last-child)::after { width: 16px; margin: 0 4px; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* HERO                                                                        */
 /* ═══════════════════════════════════════════════════════════════════════════ */

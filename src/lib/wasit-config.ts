@@ -24,7 +24,8 @@ const CONTRACT_ADDRESSES: Record<number, `0x${string}` | null> = {
   // WasitEscrow v3 — getMilestone returns (amount, state, attestedAt, disputedAt, buyerApproved)
   // Arc Testnet: deployed 2026-10-30T13:10:25Z, block 69844454, tx 0x1ea759…
   [ARC_TESTNET_CHAIN_ID]: '0xf8b07422fd2847cf2418392829221481ae916f9d',
-  [ARC_MAINNET_CHAIN_ID]: null, // fill in when deployed
+  // WasitEscrow v3 — Arc Mainnet: deployed 2026-10-30, block 28665702, tx 0x96d1d249…
+  [ARC_MAINNET_CHAIN_ID]: '0x18F7f2Fe911352C27176365A0Bdd19ddFA1B808F',
 }
 
 export function getContractAddress(chainId: number): `0x${string}` | null {

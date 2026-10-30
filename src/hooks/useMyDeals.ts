@@ -27,8 +27,8 @@ const DEPLOY_BLOCKS: Record<number, bigint> = {
   // Arc Testnet: WasitEscrow v3 (0xf8b07…) deployed in block 69844454 (2026-10-30T13:10:25Z)
   // Update this constant after every testnet redeployment.
   5042002: 69844454n,
-  // Arc Mainnet: fill in after mainnet deploy.
-  5042: 0n,
+  // Arc Mainnet: WasitEscrow v3 (0x18F7f2…) deployed in block 28665702 (2026-10-30)
+  5042: 28665702n,
 }
 
 // Arc RPC hard cap: reject ranges > ~5 000 blocks.
