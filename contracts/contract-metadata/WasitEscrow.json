@@ -1,0 +1,1322 @@
+{
+  "contractAddress": "0xf8b07422fd2847cf2418392829221481ae916f9d",
+  "network": "ARC-TESTNET",
+  "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
+  "contract_code_path": "/home/user/app/contracts/WasitEscrow.sol",
+  "contract_compiled_code_path": "/home/user/app/contracts/out/WasitEscrow.sol/WasitEscrow.json",
+  "contract_network_and_links": {
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xf8b07422fd2847cf2418392829221481ae916f9d"
+  },
+  "contract_deployments": [
+    {
+      "chain": "Arc Testnet",
+      "address": "0xf8b07422fd2847cf2418392829221481ae916f9d",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xf8b07422fd2847cf2418392829221481ae916f9d",
+      "txHash": "0x1ea759beb510041058d215c1d2a3800ce237881709f573161d9e48c517226424",
+      "deployedAt": "2026-10-30T13:10:25.740Z"
+    },
+    {
+      "chain": "Arc Testnet",
+      "address": "0xdb62589187fee9de76ae69e92b804485803bbb07",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0xdb62589187fee9de76ae69e92b804485803bbb07",
+      "txHash": "0xbc76a21a854f8daf6c4c4bdc5cd8d656b763c665a252f0fa28f2691dc39c097f",
+      "deployedAt": "2026-10-29T12:42:07.559Z"
+    },
+    {
+      "chain": "Arc Testnet",
+      "address": "0x0e00f7d98be4c20f38552766fdf1ac4cd704e5be",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x0e00f7d98be4c20f38552766fdf1ac4cd704e5be",
+      "txHash": "0x31b6fce407c49ad2b0d009984282632e920b8a32d2b02cf21cbe6121296df0aa",
+      "deployedAt": "2026-10-28T10:11:47.338Z"
+    }
+  ],
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "feeRecipient_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "feeBps_",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "ARBITRATION_WINDOW",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "USDC",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "approve",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "attest",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "evidenceHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "createDeal",
+      "inputs": [
+        {
+          "name": "payees",
+          "type": "tuple[]",
+          "internalType": "struct WasitEscrow.Payee[]",
+          "components": [
+            {
+              "name": "addr",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "bps",
+              "type": "uint16",
+              "internalType": "uint16"
+            }
+          ]
+        },
+        {
+          "name": "inspector",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbiter",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "milestoneAmounts",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        },
+        {
+          "name": "challengeWindow",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "deadline",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "dispute",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "feeBps",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "feeRecipient",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "fund",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getDeal",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "buyer",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "inspector",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbiter",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "state",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.DealState"
+        },
+        {
+          "name": "challengeWindow",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "deadline",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "total",
+          "type": "uint128",
+          "internalType": "uint128"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMilestone",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "amount",
+          "type": "uint128",
+          "internalType": "uint128"
+        },
+        {
+          "name": "state",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        },
+        {
+          "name": "attestedAt",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "disputedAt",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "buyerApproved",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "nextDealId",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "owed",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint128",
+          "internalType": "uint128"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "refundExpired",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "release",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "releaseStalled",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "resolve",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "sellerShareBps",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "withdraw",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "DealCreated",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "inspector",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arbiter",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "total",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        },
+        {
+          "name": "deadline",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "DealFunded",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "total",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneApproved",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneAttested",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "evidenceHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "attestedAt",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneDisputed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneRefunded",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneReleased",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneResolved",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "sellerAmount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        },
+        {
+          "name": "buyerRefund",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneStalledReleased",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PayeePaid",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "PayoutCredited",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Withdrawn",
+      "inputs": [
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint128",
+          "indexed": false,
+          "internalType": "uint128"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "ArbiterIsPayee",
+      "inputs": [
+        {
+          "name": "arbiter",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ArbiterWindowNotExpired",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "unlocksAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "now_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AttestAfterDeadline",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "deadline",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "now_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ChallengeWindowExpired",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "expiredAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "now_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ChallengeWindowNotExpired",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "unlocksAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "now_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ChallengeWindowTooLong",
+      "inputs": [
+        {
+          "name": "provided",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "maxAllowed",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "DeadlineNotPassed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "deadline",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "now_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "DealNotFound",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "DealNotFunded",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.DealState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "DuplicatePayee",
+      "inputs": [
+        {
+          "name": "payee",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "FeeBpsTooHigh",
+      "inputs": [
+        {
+          "name": "feeBps",
+          "type": "uint16",
+          "internalType": "uint16"
+        },
+        {
+          "name": "maxFeeBps",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidArbiter",
+      "inputs": [
+        {
+          "name": "arbiter",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidBpsSum",
+      "inputs": [
+        {
+          "name": "expected",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "actual",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidDeadline",
+      "inputs": [
+        {
+          "name": "deadline",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "minimumExclusive",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidDealState",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.DealState"
+        },
+        {
+          "name": "expected",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.DealState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidInspector",
+      "inputs": [
+        {
+          "name": "inspector",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidMilestoneCount",
+      "inputs": [
+        {
+          "name": "length",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "min",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "max",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "InvalidPayeeCount",
+      "inputs": [
+        {
+          "name": "length",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "min",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "max",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneAmountMustBePositive",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotAttested",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotDisputed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotPending",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotPendingForRefund",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotReleasable",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MilestoneNotStalledDisputed",
+      "inputs": [
+        {
+          "name": "dealId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "i",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "current",
+          "type": "uint8",
+          "internalType": "enum WasitEscrow.MilestoneState"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "NothingToWithdraw",
+      "inputs": [
+        {
+          "name": "caller",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ReentrancyGuardReentrantCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SafeERC20FailedOperation",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SellerShareBpsTooHigh",
+      "inputs": [
+        {
+          "name": "provided",
+          "type": "uint16",
+          "internalType": "uint16"
+        },
+        {
+          "name": "max",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SellerShareMustBePositive",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "TotalAmountOverflow",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "UnauthorizedCaller",
+      "inputs": [
+        {
+          "name": "caller",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "expected",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ZeroAddress",
+      "inputs": []
+    }
+  ]
+}

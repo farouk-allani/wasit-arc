@@ -270,7 +270,7 @@ contract WasitEscrowHandler is Test {
         uint256 mi              = bound(mSeed,           0, info.milestoneCount == 0 ? 0 : info.milestoneCount - 1);
         uint16  sellerShareBps  = uint16(bound(sellerShareSeed, 0, 10_000));
 
-        (uint128 mAmt, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, mi);
+        (uint128 mAmt, WasitEscrow.MilestoneState mState, , ,) = escrow.getMilestone(dealId, mi);
 
         vm.prank(info.arbiter);
         try escrow.resolve(dealId, mi, sellerShareBps) {
@@ -292,7 +292,7 @@ contract WasitEscrowHandler is Test {
 
         uint256 mi = bound(mSeed, 0, info.milestoneCount == 0 ? 0 : info.milestoneCount - 1);
 
-        (uint128 mAmt, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, mi);
+        (uint128 mAmt, WasitEscrow.MilestoneState mState, , ,) = escrow.getMilestone(dealId, mi);
 
         try escrow.release(dealId, mi) {
             if (!_isTerminal(mState)) {
@@ -313,7 +313,7 @@ contract WasitEscrowHandler is Test {
 
         uint256 mi = bound(mSeed, 0, info.milestoneCount == 0 ? 0 : info.milestoneCount - 1);
 
-        (uint128 mAmt, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, mi);
+        (uint128 mAmt, WasitEscrow.MilestoneState mState, , ,) = escrow.getMilestone(dealId, mi);
 
         try escrow.refundExpired(dealId, mi) {
             if (!_isTerminal(mState)) {
@@ -334,7 +334,7 @@ contract WasitEscrowHandler is Test {
 
         uint256 mi = bound(mSeed, 0, info.milestoneCount == 0 ? 0 : info.milestoneCount - 1);
 
-        (uint128 mAmt, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, mi);
+        (uint128 mAmt, WasitEscrow.MilestoneState mState, , ,) = escrow.getMilestone(dealId, mi);
 
         try escrow.releaseStalled(dealId, mi) {
             // releaseStalled marks the milestone Released — same terminal state as release()

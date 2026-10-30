@@ -247,7 +247,7 @@ contract WasitEscrowSafetyTest is WasitEscrowTestBase {
         vm.prank(stranger);
         escrow.releaseStalled(dealId, 0);
 
-        (, WasitEscrow.MilestoneState stateAfter) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState stateAfter, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint256(stateAfter), uint256(WasitEscrow.MilestoneState.Released));
     }
 
@@ -548,7 +548,7 @@ contract WasitEscrowSafetyTest is WasitEscrowTestBase {
         vm.prank(nobody);
         escrow.releaseStalled(dealId, 0);
 
-        (, WasitEscrow.MilestoneState st) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState st, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint256(st), uint256(WasitEscrow.MilestoneState.Released));
     }
 

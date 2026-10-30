@@ -673,20 +673,35 @@ contract WasitEscrow is ReentrancyGuard {
         );
     }
 
-    /// @notice Returns a milestone's amount and state.
+    /// @notice Returns a milestone's full state including timestamps.
     /// @param dealId Identifier of the deal.
     /// @param i Milestone index.
-    /// @return amount Milestone amount in 6-decimal USDC units.
-    /// @return state Current milestone state.
+    /// @return amount      Milestone amount in 6-decimal USDC units.
+    /// @return state       Current milestone state.
+    /// @return attestedAt  Unix timestamp when the inspector attested; 0 if not yet attested.
+    /// @return disputedAt  Unix timestamp when the buyer disputed; 0 if not yet disputed.
+    /// @return buyerApproved True if the buyer called approve() on this milestone.
     function getMilestone(uint256 dealId, uint256 i)
         external
         view
-        returns (uint128 amount, MilestoneState state)
+        returns (
+            uint128 amount,
+            MilestoneState state,
+            uint64 attestedAt,
+            uint64 disputedAt,
+            bool buyerApproved
+        )
     {
         _requireExistingDeal(dealId);
 
         Milestone storage milestone = _deals[dealId].milestones[i];
-        return (milestone.amount, milestone.state);
+        return (
+            milestone.amount,
+            milestone.state,
+            milestone.attestedAt,
+            milestone.disputedAt,
+            milestone.buyerApproved
+        );
     }
 
     /// @notice Validates that payee basis points plus fee basis points equal 10_000.

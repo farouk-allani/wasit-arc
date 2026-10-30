@@ -290,9 +290,9 @@ contract WasitEscrowCreateDealTest is WasitEscrowTestBase {
     function test_CreateDeal_StoresMilestonesCorrectly() public {
         uint256 dealId = _defaultCreateDeal();
 
-        (uint128 a0, WasitEscrow.MilestoneState s0) = escrow.getMilestone(dealId, 0);
-        (uint128 a1, WasitEscrow.MilestoneState s1) = escrow.getMilestone(dealId, 1);
-        (uint128 a2, WasitEscrow.MilestoneState s2) = escrow.getMilestone(dealId, 2);
+        (uint128 a0, WasitEscrow.MilestoneState s0, , ,) = escrow.getMilestone(dealId, 0);
+        (uint128 a1, WasitEscrow.MilestoneState s1, , ,) = escrow.getMilestone(dealId, 1);
+        (uint128 a2, WasitEscrow.MilestoneState s2, , ,) = escrow.getMilestone(dealId, 2);
 
         assertEq(a0, uint128(M0));
         assertEq(a1, uint128(M1));

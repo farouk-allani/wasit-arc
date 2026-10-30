@@ -184,7 +184,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
         emit WasitEscrow.MilestoneAttested(dealId, 0, h, ts);
         escrow.attest(dealId, 0, h);
 
-        (uint128 amount, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (uint128 amount, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Attested));
         assertEq(amount, uint128(M0));
     }
@@ -249,7 +249,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
         emit WasitEscrow.MilestoneApproved(dealId, 0, buyer);
         escrow.approve(dealId, 0);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Approved));
     }
 
@@ -300,7 +300,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
         assertEq(usdc.balanceOf(forwarder),    expectedForwarder);
         assertEq(usdc.balanceOf(feeRecipient), expectedFee);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Released));
     }
 
@@ -352,7 +352,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
         emit WasitEscrow.MilestoneReleased(dealId, 0, A);
         escrow.release(dealId, 0);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Released));
     }
 
@@ -372,7 +372,7 @@ contract WasitEscrowReleaseTest is WasitEscrowTestBase {
         emit WasitEscrow.MilestoneReleased(dealId, 0, A);
         escrow.release(dealId, 0);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Released));
     }
 

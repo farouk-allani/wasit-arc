@@ -106,7 +106,7 @@ contract WasitEscrowDisputeRefundTest is WasitEscrowTestBase {
         vm.expectEmit(true, true, false, true, address(escrow));
         emit WasitEscrow.MilestoneDisputed(dealId, 0, buyer, "bad work");
         escrow.dispute(dealId, 0, "bad work");
-        (, WasitEscrow.MilestoneState st) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState st, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(st), uint8(WasitEscrow.MilestoneState.Disputed));
     }
 
@@ -349,7 +349,7 @@ contract WasitEscrowDisputeRefundTest is WasitEscrowTestBase {
         escrow.refundExpired(dealId, 0);
 
         assertEq(usdc.balanceOf(buyer) - buyerBefore, M0, "buyer received M0");
-        (, WasitEscrow.MilestoneState st) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState st, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(st), uint8(WasitEscrow.MilestoneState.Refunded));
     }
 

@@ -67,7 +67,7 @@ contract WasitEscrowDeadlineGuardTest is WasitEscrowTestBase {
         vm.prank(inspector);
         escrow.attest(dealId, 0, EVIDENCE); // must not revert
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Attested));
     }
 
@@ -124,7 +124,7 @@ contract WasitEscrowDeadlineGuardTest is WasitEscrowTestBase {
         vm.prank(anyone);
         escrow.refundExpired(dealId, 0);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Refunded), "state != Refunded");
         assertEq(usdc.balanceOf(buyer), buyerBefore + M0, "buyer did not receive refund");
     }
@@ -141,7 +141,7 @@ contract WasitEscrowDeadlineGuardTest is WasitEscrowTestBase {
         vm.prank(buyer);
         escrow.approve(dealId, 0);
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Approved), "state != Approved");
     }
 
@@ -175,7 +175,7 @@ contract WasitEscrowDeadlineGuardTest is WasitEscrowTestBase {
         assertEq(usdc.balanceOf(forwarder)    - forwarderBefore,  expectedForwarder, "forwarder wrong");
         assertEq(usdc.balanceOf(seller)       - sellerBefore,     expectedSeller,    "seller wrong");
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Released), "state != Released");
     }
 
@@ -203,7 +203,7 @@ contract WasitEscrowDeadlineGuardTest is WasitEscrowTestBase {
         vm.prank(makeAddr("caller"));
         escrow.release(dealId, 0); // must not revert
 
-        (, WasitEscrow.MilestoneState state) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState state, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(state), uint8(WasitEscrow.MilestoneState.Released), "state != Released");
     }
 

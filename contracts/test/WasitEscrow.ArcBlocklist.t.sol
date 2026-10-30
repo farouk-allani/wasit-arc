@@ -235,7 +235,7 @@ contract WasitEscrowArcBlocklistTest is WasitEscrowTestBase {
         );
 
         // 8. Milestone state is Released (not stuck)
-        (, WasitEscrow.MilestoneState mState) = escrow.getMilestone(dealId, 0);
+        (, WasitEscrow.MilestoneState mState, , ,) = escrow.getMilestone(dealId, 0);
         assertEq(uint8(mState), uint8(WasitEscrow.MilestoneState.Released), "Milestone must be Released");
     }
 
