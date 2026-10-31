@@ -100,6 +100,9 @@ export function CreateDeal({ onSuccess }: Props) {
   const [currentStep, setCurrentStep] = useState(STEP_MILESTONES)
   // Track which steps have been visited so "back" navigation is allowed
   const [maxVisited, setMaxVisited] = useState(0)
+  // Track which steps the user has attempted to advance from (or edited).
+  // Errors are only shown on touched steps. Never reset — once touched, always touched.
+  const [touchedSteps, setTouchedSteps] = useState<Set<number>>(new Set())
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
 
   const effectiveFeeBps = feeBps ?? 200
@@ -155,17 +158,30 @@ export function CreateDeal({ onSuccess }: Props) {
   }, [milestones.length])
 
   // ── Navigation ───────────────────────────────────────────────────────────────
+  const touchStep = useCallback((step: number) => {
+    setTouchedSteps(prev => {
+      if (prev.has(step)) return prev
+      const next = new Set(prev)
+      next.add(step)
+      return next
+    })
+  }, [])
+
   const goToStep = useCallback((step: number) => {
     setCurrentStep(step)
     setMaxVisited(prev => Math.max(prev, step))
+    // Reaching the review step counts as touching it so all errors are visible
+    if (step === STEP_REVIEW) touchStep(STEP_REVIEW)
     // Move focus to the new step heading for screen readers
     setTimeout(() => stepHeadingRef.current?.focus(), 50)
-  }, [])
+  }, [touchStep])
 
   const handleContinue = useCallback(() => {
+    // Always mark this step touched so errors become visible on this click
+    touchStep(currentStep)
     if (stepErrors.length > 0) return
     if (currentStep < STEP_REVIEW) goToStep(currentStep + 1)
-  }, [currentStep, stepErrors, goToStep])
+  }, [currentStep, stepErrors, goToStep, touchStep])
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) goToStep(currentStep - 1)
@@ -468,8 +484,8 @@ export function CreateDeal({ onSuccess }: Props) {
             />
           )}
 
-          {/* Inline step errors */}
-          {stepErrors.length > 0 && (
+          {/* Inline step errors — only shown after the user has attempted to advance */}
+          {stepErrors.length > 0 && touchedSteps.has(currentStep) && (
             <div
               role="alert"
               style={{ padding: '14px 16px', background: 'rgb(232 115 95 / 0.07)', border: '1px solid rgb(232 115 95 / 0.2)', borderRadius: 'var(--radius)' }}
@@ -507,7 +523,6 @@ export function CreateDeal({ onSuccess }: Props) {
               <Button
                 variant="primary"
                 onClick={handleContinue}
-                disabled={stepErrors.length > 0}
                 style={{ minWidth: '140px' }}
               >
                 {currentStep === STEP_TIMING ? 'Review deal' : 'Continue'}
